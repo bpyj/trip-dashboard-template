@@ -12,7 +12,19 @@ export function renderTripInfo() {
   tripTitleEl.textContent = tripInfo.title;
   tripSubtitleEl.textContent = tripInfo.subtitle;
   document.querySelector('meta[name="description"]').content = tripInfo.subtitle;
-  document.querySelector('.summary-grid').innerHTML = config.summary
+  const duration =
+    Math.round((Date.parse(tripInfo.endDate) - Date.parse(tripInfo.startDate)) / 86400000) + 1;
+  const summary = [
+    {
+      label: 'Trip dates',
+      value: `${formatDayDate(tripInfo.startDate)} – ${formatDayDate(tripInfo.endDate)} · ${duration} ${duration === 1 ? 'day' : 'days'}`,
+    },
+    { label: 'Destination time zone', value: tripInfo.timeZone },
+    ...config.summary.filter(
+      (item) => !['Trip dates', 'Destination time zone'].includes(item.label),
+    ),
+  ];
+  document.querySelector('.summary-grid').innerHTML = summary
     .map(
       (item) =>
         `<div class="summary-item"><div class="label">${escapeHtml(item.label)}</div><div class="value">${escapeHtml(item.value)}</div></div>`,
@@ -25,7 +37,7 @@ export function renderTripInfo() {
         `<div class="box"><h3>${escapeHtml(item.title)}</h3>${buildList(item.details)}</div>`,
     )
     .join('');
-  document.querySelector('.footer-note').textContent = `Daily plan uses ${config.timeZone}.`;
+  document.querySelector('.footer-note').textContent = `Daily plan uses ${tripInfo.timeZone}.`;
 }
 
 export function renderDays() {
@@ -266,13 +278,14 @@ export function openDayCardByDate(dateStr) {
 
 export function updateToday(now = new Date(), openCard = true) {
   const localYMD = new Intl.DateTimeFormat('en-CA', {
-    timeZone: config.timeZone,
+    timeZone: tripInfo.timeZone,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
   }).format(now);
 
-  const match = tripDays.find((day) => day.date === localYMD);
+  const withinTrip = localYMD >= tripInfo.startDate && localYMD <= tripInfo.endDate;
+  const match = withinTrip && tripDays.find((day) => day.date === localYMD);
   const todayDate = document.getElementById('todayDate');
   const todayTitle = document.getElementById('todayTitle');
   const todayMeta = document.getElementById('todayMeta');
@@ -287,8 +300,10 @@ export function updateToday(now = new Date(), openCard = true) {
     if (openCard) openDayCardByDate(match.date);
   } else {
     todayDate.textContent = 'Trip Preview';
-    todayTitle.textContent = 'Not within trip dates right now';
-    todayMeta.textContent = `${formatDayDate(tripDays[0].date)} – ${formatDayDate(tripDays.at(-1).date)}. Open a day below. Today’s Plan follows ${config.timeZone}.`;
+    todayTitle.textContent = withinTrip
+      ? 'No daily plan for today yet'
+      : 'Not within trip dates right now';
+    todayMeta.textContent = `${formatDayDate(tripInfo.startDate)} – ${formatDayDate(tripInfo.endDate)}. Open a day below. Today’s Plan follows ${tripInfo.timeZone}.`;
   }
 }
 

@@ -5,7 +5,7 @@ import { build } from 'esbuild';
 import { JSDOM, VirtualConsole } from 'jsdom';
 import { IDBFactory } from 'fake-indexeddb';
 import config from '../trip.config.js';
-import { validateDays, validateTripConfig } from '../src/model.js';
+import { validateDays, validateTripConfig, validateTripInfo } from '../src/model.js';
 
 const css = await readFile('style.css', 'utf8');
 const template = await readFile('index.html', 'utf8');
@@ -348,4 +348,80 @@ test('built standalone exports photos and notes locally without fetching CSS', a
     0,
   );
   assert.equal(errors.length, 0, errors.map((error) => error.message).join('\n'));
+});
+
+test('trip date range and destination clock are editable, validated and archived', async (t) => {
+  const database = new IDBFactory();
+  const live = openDashboard(database, {
+    [`trip:${config.id}:info:v1`]: JSON.stringify({
+      title: 'Previously edited',
+      subtitle: 'Saved subtitle',
+    }),
+  });
+  t.after(() => live.window.close());
+  await tick();
+  const { document } = live.window;
+  const app = live.window.TripTest;
+  assert.equal(document.title, 'Previously edited');
+  assert.equal(app.tripInfo.startDate, '2027-06-01');
+  document.getElementById('notes-2027-06-02').value = 'Keep my unsaved note';
+  document.getElementById('editTripBtn').click();
+  document.getElementById('editTripStartDate').value = '2027-06-01';
+  document.getElementById('editTripEndDate').value = '2027-06-05';
+  document.getElementById('editTripTimeZone').value = 'America/New_York';
+  const submit = () =>
+    document
+      .getElementById('tripEditor')
+      .dispatchEvent(new live.window.Event('submit', { cancelable: true }));
+  submit();
+  assert.equal(app.tripInfo.timeZone, 'America/New_York');
+  assert.match(document.querySelector('.summary-grid').textContent, /5 days/);
+  assert.match(document.querySelector('.summary-grid').textContent, /America\/New_York/);
+  assert.equal(document.getElementById('notes-2027-06-02').value, 'Keep my unsaved note');
+  assert.equal(app.tripDays[0].date, '2027-06-01');
+  app.updateToday(new live.window.Date('2027-06-01T03:59:59Z'), false);
+  assert.equal(document.getElementById('todayDate').textContent, 'Trip Preview');
+  app.updateToday(new live.window.Date('2027-06-01T04:00:00Z'), false);
+  assert.match(document.getElementById('todayDate').textContent, /Day 1/);
+  app.updateToday(new live.window.Date('2027-06-04T12:00:00Z'), false);
+  assert.equal(document.getElementById('todayTitle').textContent, 'No daily plan for today yet');
+  document.getElementById('editTripBtn').click();
+  document.getElementById('editTripEndDate').value = '2027-05-31';
+  submit();
+  assert.match(document.getElementById('tripEditorStatus').textContent, /End date/);
+  assert.equal(app.tripInfo.endDate, '2027-06-05');
+  document.getElementById('editTripEndDate').value = '2027-06-05';
+  document.getElementById('editTripTimeZone').value = 'Invalid/Place';
+  submit();
+  assert.match(
+    document.getElementById('tripEditorStatus').textContent,
+    /valid destination time zone/,
+  );
+  assert.equal(app.tripInfo.timeZone, 'America/New_York');
+  document.getElementById('cancelTripBtn').click();
+  assert.throws(() => validateTripInfo({ ...app.tripInfo, startDate: '2027-02-30' }));
+  const saved = Object.fromEntries(
+    Object.keys(live.window.localStorage).map((key) => [
+      key,
+      live.window.localStorage.getItem(key),
+    ]),
+  );
+  const reload = openDashboard(database, saved);
+  t.after(() => reload.window.close());
+  await tick();
+  assert.equal(reload.window.TripTest.tripInfo.endDate, '2027-06-05');
+  assert.equal(reload.window.TripTest.tripInfo.timeZone, 'America/New_York');
+  const payload = await app.buildArchivePayload();
+  assert.equal(payload.tripInfo.timeZone, 'America/New_York');
+  const archive = new JSDOM(app.buildArchiveHtml(payload, css));
+  t.after(() => archive.window.close());
+  assert.match(archive.window.document.querySelector('.archive-info-body').textContent, /5 days/);
+  assert.match(
+    archive.window.document.querySelector('.archive-info-body').textContent,
+    /America\/New_York/,
+  );
+  assert.equal(archive.window.document.querySelector('#tripEditor'), null);
+  const favicon = decodeURIComponent(document.querySelector('link[rel="icon"]').href);
+  assert.match(favicon, /ellipse/);
+  assert.equal(live.errors.length, 0);
 });

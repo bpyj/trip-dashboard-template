@@ -5,7 +5,7 @@ export const DB_VERSION = 1;
 export const STORE_NAME = 'photos';
 export const NOTES_PREFIX = `trip:${config.id}:notes:v1:`;
 
-import { validateDays } from './model.js';
+import { validateDays, validateTripInfo } from './model.js';
 import config from '../trip.config.js';
 import { cloneTripDays } from './utils.js';
 
@@ -14,25 +14,25 @@ import { cloneTripDays } from './utils.js';
 let dbPromise = null;
 
 export function loadTripInfo() {
-  const defaults = { title: config.title, subtitle: config.subtitle };
+  const days = loadEditableTripDays();
+  const defaults = {
+    title: config.title,
+    subtitle: config.subtitle,
+    startDate: config.startDate || days[0].date,
+    endDate: config.endDate || days.at(-1).date,
+    timeZone: config.timeZone,
+  };
   try {
     const saved = JSON.parse(localStorage.getItem(TRIP_INFO_STORAGE_KEY));
-    if (
-      typeof saved?.title !== 'string' ||
-      !saved.title.trim() ||
-      saved.title.length > 200 ||
-      typeof saved.subtitle !== 'string' ||
-      saved.subtitle.length > 500
-    )
-      return defaults;
-    return { title: saved.title.trim(), subtitle: saved.subtitle.trim() };
+    // Older title-only edits inherit the new date and clock defaults.
+    return validateTripInfo({ ...defaults, ...saved });
   } catch {
     return defaults;
   }
 }
 
 export function saveTripInfo(info) {
-  localStorage.setItem(TRIP_INFO_STORAGE_KEY, JSON.stringify(info));
+  localStorage.setItem(TRIP_INFO_STORAGE_KEY, JSON.stringify(validateTripInfo(info)));
 }
 
 export function loadEditableTripDays() {

@@ -11,7 +11,7 @@
     <link
       rel="icon"
       type="image/svg+xml"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23ffffff'/%3E%3Ccircle cx='16' cy='16' r='9' fill='%23dc2626'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%23eff6ff' stroke='%232563eb' stroke-width='2'/%3E%3Cellipse cx='16' cy='16' rx='6' ry='13' fill='none' stroke='%232563eb' stroke-width='2'/%3E%3Cpath d='M3 16h26M6 9h20M6 23h20' fill='none' stroke='%232563eb' stroke-width='2'/%3E%3C/svg%3E"
     />
     <link id="appStyles" rel="stylesheet" href="style.css" />
   </head>
@@ -42,7 +42,40 @@
               <label class="editor-label" for="editTripSubtitle">Subtitle</label>
               <input class="editor-input" id="editTripSubtitle" maxlength="500" />
             </div>
+            <div class="editor-field">
+              <label class="editor-label" for="editTripStartDate">Start date</label>
+              <input class="editor-input" id="editTripStartDate" type="date" required />
+            </div>
+            <div class="editor-field">
+              <label class="editor-label" for="editTripEndDate">End date</label>
+              <input class="editor-input" id="editTripEndDate" type="date" required />
+            </div>
+            <div class="editor-field full">
+              <label class="editor-label" for="editTripTimeZone">Destination time zone</label>
+              <input
+                class="editor-input"
+                id="editTripTimeZone"
+                list="tripTimeZones"
+                required
+                placeholder="Asia/Tokyo"
+              />
+              <datalist id="tripTimeZones">
+                <option value="Asia/Tokyo"></option>
+                <option value="Asia/Singapore"></option>
+                <option value="Asia/Seoul"></option>
+                <option value="Asia/Bangkok"></option>
+                <option value="Europe/London"></option>
+                <option value="Europe/Paris"></option>
+                <option value="America/New_York"></option>
+                <option value="Australia/Sydney"></option>
+                <option value="UTC"></option>
+              </datalist>
+              <div class="editor-help">Choose a suggestion or enter another city time zone.</div>
+            </div>
           </div>
+          <p class="editor-help">
+            The date range describes your trip. Existing daily plans keep their own dates.
+          </p>
           <div class="actions">
             <button class="btn" type="submit">Save Trip</button>
             <button class="btn secondary" id="cancelTripBtn" type="button">Cancel</button>

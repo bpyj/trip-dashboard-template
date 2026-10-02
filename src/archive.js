@@ -6,6 +6,7 @@ import {
   tripDays,
   tripSubtitleEl,
   tripTitleEl,
+  tripInfo,
 } from './state.js';
 import {
   formatDateTime,
@@ -41,6 +42,7 @@ export async function buildArchivePayload() {
     appVersion: 1,
     exportedAt: new Date().toISOString(),
     tripInfo: {
+      ...tripInfo,
       title: tripTitleEl.textContent.trim(),
       subtitle: tripSubtitleEl.textContent.trim(),
     },

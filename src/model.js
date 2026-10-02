@@ -54,3 +54,36 @@ export function validateTripConfig(config) {
     if (!Array.isArray(item.details)) throw new Error('Travel details must be arrays.');
   return { ...config, days: validateDays(config.days) };
 }
+
+export function validateTripInfo(info) {
+  if (typeof info.title !== 'string' || !info.title.trim() || info.title.length > 200)
+    throw new Error('Enter a trip title up to 200 characters.');
+  if (typeof info.subtitle !== 'string' || info.subtitle.length > 500)
+    throw new Error('Enter a subtitle up to 500 characters.');
+  for (const field of ['startDate', 'endDate']) {
+    const value = info[field];
+    const date = new Date(`${value}T00:00:00Z`);
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(value) ||
+      !Number.isFinite(date.getTime()) ||
+      date.toISOString().slice(0, 10) !== value
+    )
+      throw new Error('Choose valid start and end dates.');
+  }
+  if (info.endDate < info.startDate)
+    throw new Error('End date must be on or after the start date.');
+  if (typeof info.timeZone !== 'string' || !info.timeZone.trim())
+    throw new Error('Enter a destination time zone, such as Asia/Tokyo.');
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: info.timeZone.trim() });
+  } catch {
+    throw new Error('Use a valid destination time zone, such as Asia/Tokyo or Europe/London.');
+  }
+  return {
+    title: info.title.trim(),
+    subtitle: info.subtitle.trim(),
+    startDate: info.startDate,
+    endDate: info.endDate,
+    timeZone: info.timeZone.trim(),
+  };
+}

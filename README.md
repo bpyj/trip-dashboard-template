@@ -4,7 +4,9 @@ A reusable, mobile-friendly trip dashboard. Personalise one configuration file f
 
 ## Features
 
-- Edit Trip beside the title saves the title and subtitle in this browser.
+- Edit Trip saves the title, subtitle, start/end dates and destination time zone in this browser.
+- Date range and time zone summary cards follow those settings; Today’s Plan uses the saved time zone. Changing the date range leaves existing daily plans and their notes/photos on their original dates.
+- A generic globe favicon can be replaced when personalising a trip.
 - Collapsible daily plans with an editor and an Add Day button.
 - Destination time zone for Today’s Plan.
 - Day notes saved in the browser.
@@ -84,7 +86,7 @@ The template contains fictional sample plans and no personal booking references,
 | `src/model.js`             | Configuration and stored-day validation.                  |
 | `src/state.js`             | Current trip days and DOM references.                     |
 | `src/storage.js`           | Storage keys, notes and transactional photo persistence.  |
-| `src/trip.js`              | Trip title and subtitle editor.                           |
+| `src/trip.js`              | Trip settings editor.                                     |
 | `src/days.js`              | Day editor and adding days.                               |
 | `src/photos.js`            | Compression, cover thumbnails and photo dialog.           |
 | `src/view.js`              | Rendering and Today’s Plan.                               |
