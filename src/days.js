@@ -72,12 +72,10 @@ export function addNewDay() {
     strictTimes: [],
     itinerary: [],
     transport: [],
-    parking: [],
-    food: [],
+    accommodation: [],
     bookings: [],
     notes: [],
-    gettingThere: [],
-    attractionLinks: [],
+    links: [],
   });
 
   try {
@@ -113,16 +111,12 @@ export function fillDayEditor(day) {
   document.getElementById(`edit-strictTimes-${dayId}`).value = joinLines(day.strictTimes);
   document.getElementById(`edit-itinerary-${dayId}`).value = joinLines(day.itinerary);
   document.getElementById(`edit-transport-${dayId}`).value = joinLines(day.transport);
-  document.getElementById(`edit-parking-${dayId}`).value = joinLines(day.parking);
-  document.getElementById(`edit-food-${dayId}`).value = joinLines(day.food);
+  document.getElementById(`edit-accommodation-${dayId}`).value = joinLines(day.accommodation);
   document.getElementById(`edit-bookingsNotes-${dayId}`).value = joinLines([
     ...(day.bookings || []),
     ...(day.notes || []),
   ]);
-  document.getElementById(`edit-gettingThere-${dayId}`).value = joinLinkLines(day.gettingThere);
-  document.getElementById(`edit-attractionLinks-${dayId}`).value = joinLinkLines(
-    day.attractionLinks,
-  );
+  document.getElementById(`edit-links-${dayId}`).value = joinLinkLines(day.links);
 }
 
 export function openDayEditor(dayId) {
@@ -157,19 +151,13 @@ export function saveDayEditor(dayId) {
   current.strictTimes = parseLines(document.getElementById(`edit-strictTimes-${dayId}`).value);
   current.itinerary = parseLines(document.getElementById(`edit-itinerary-${dayId}`).value);
   current.transport = parseLines(document.getElementById(`edit-transport-${dayId}`).value);
-  current.parking = parseLines(document.getElementById(`edit-parking-${dayId}`).value);
-  current.food = parseLines(document.getElementById(`edit-food-${dayId}`).value);
+  current.accommodation = parseLines(document.getElementById(`edit-accommodation-${dayId}`).value);
 
   const mergedNotes = parseLines(document.getElementById(`edit-bookingsNotes-${dayId}`).value);
   current.bookings = mergedNotes;
   current.notes = [];
 
-  current.gettingThere = parseLinkLines(
-    document.getElementById(`edit-gettingThere-${dayId}`).value,
-  );
-  current.attractionLinks = parseLinkLines(
-    document.getElementById(`edit-attractionLinks-${dayId}`).value,
-  );
+  current.links = parseLinkLines(document.getElementById(`edit-links-${dayId}`).value);
 
   tripDays[idx] = current;
   try {

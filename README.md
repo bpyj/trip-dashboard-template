@@ -30,7 +30,7 @@ Edit **trip.config.js**. This is the only file containing the sample trip.
 | `travel`                           | Flights, accommodation, travellers or other travel information; each item has `title` and a `details` list. |
 | `days`                             | Daily plans with unique `YYYY-MM-DD` dates, sorted automatically.                                           |
 
-Day fields: `date`, `label`, `title`, `summary`, `status` (`easy`, `medium`, `long`), and lists for `strictTimes`, `itinerary`, `transport`, `parking`, `food`, `bookings` and `notes`. Links in `gettingThere` and `attractionLinks` use `{ text, url }`. Only HTTP and HTTPS links are accepted. Omitted lists become empty lists.
+Day fields: `date`, `label`, `title`, `summary`, `status` (`easy`, `medium`, `long`), and lists for `strictTimes`, `itinerary`, `transport`, `accommodation`, `bookings` and `notes`. Combined attraction and directions links in `links` use `{ text, url }`. Only HTTP and HTTPS links are accepted. Omitted lists become empty lists. Older saved `gettingThere` and `attractionLinks` entries merge into `links`; saved parking and food entries move into Bookings / Notes with their labels, preserving their content.
 
 Configuration is validated before the dashboard starts. Invalid dates, duplicate days, invalid trip IDs and unknown time zones are rejected.
 

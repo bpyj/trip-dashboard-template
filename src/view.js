@@ -77,11 +77,9 @@ export function renderDays() {
 
           <div class="box"><h3>Itinerary</h3>${buildList(day.itinerary)}</div>
           <div class="box"><h3>Transport</h3>${buildList(day.transport)}</div>
-          <div class="box"><h3>Parking</h3>${day.parking && day.parking.length ? buildList(day.parking) : '<ul><li>No parking notes</li></ul>'}</div>
-          <div class="box"><h3>Food</h3>${buildList(day.food)}</div>
+          <div class="box"><h3>Accommodation</h3>${buildList(day.accommodation)}</div>
           <div class="box"><h3>Bookings / Notes</h3>${buildList([...(day.bookings || []), ...(day.notes || [])])}</div>
-          <div class="box"><h3>Getting There</h3>${renderLinkButtons(day.gettingThere)}</div>
-          <div class="box"><h3>Attraction Info</h3>${renderLinkButtons(day.attractionLinks)}</div>
+          <div class="box"><h3>Links</h3>${renderLinkButtons(day.links)}</div>
         </div>
 
         ${`
@@ -130,14 +128,8 @@ export function renderDays() {
                 </div>
 
                 <div class="editor-field full">
-                  <label class="editor-label" for="edit-parking-${escapeHtml(day.date)}">Parking</label>
-                  <textarea class="editor-textarea" id="edit-parking-${escapeHtml(day.date)}"></textarea>
-                  <div class="editor-help">One line per item</div>
-                </div>
-
-                <div class="editor-field full">
-                  <label class="editor-label" for="edit-food-${escapeHtml(day.date)}">Food</label>
-                  <textarea class="editor-textarea" id="edit-food-${escapeHtml(day.date)}"></textarea>
+                  <label class="editor-label" for="edit-accommodation-${escapeHtml(day.date)}">Accommodation</label>
+                  <textarea class="editor-textarea" id="edit-accommodation-${escapeHtml(day.date)}"></textarea>
                   <div class="editor-help">One line per item</div>
                 </div>
 
@@ -148,16 +140,11 @@ export function renderDays() {
                 </div>
 
                 <div class="editor-field full">
-                  <label class="editor-label" for="edit-gettingThere-${escapeHtml(day.date)}">Getting There Links</label>
-                  <textarea class="editor-textarea" id="edit-gettingThere-${escapeHtml(day.date)}"></textarea>
+                  <label class="editor-label" for="edit-links-${escapeHtml(day.date)}">Links · Attractions and Getting There</label>
+                  <textarea class="editor-textarea" id="edit-links-${escapeHtml(day.date)}"></textarea>
                   <div class="editor-help">One line per link in this format: Text | URL</div>
                 </div>
 
-                <div class="editor-field full">
-                  <label class="editor-label" for="edit-attractionLinks-${escapeHtml(day.date)}">Attraction Info Links</label>
-                  <textarea class="editor-textarea" id="edit-attractionLinks-${escapeHtml(day.date)}"></textarea>
-                  <div class="editor-help">One line per link in this format: Text | URL</div>
-                </div>
               </div>
 
               <div class="actions">

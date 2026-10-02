@@ -61,7 +61,7 @@ test('configuration rejects invalid dates and separates trip identities', () => 
   assert.equal(
     validateDays([
       { date: '2027-06-01', gettingThere: [{ text: 'Bad', url: 'javascript:alert(1)' }] },
-    ])[0].gettingThere.length,
+    ])[0].links.length,
     0,
   );
 });
@@ -107,13 +107,13 @@ test('editing, storage, photos and self-contained archives survive the refactor'
   app.openDayEditor('2027-06-02');
   document.getElementById('edit-title-2027-06-02').value = hostile;
   document.getElementById('notes-2027-06-02').value = 'Lunch and memories';
-  document.getElementById('edit-gettingThere-2027-06-02').value =
+  document.getElementById('edit-links-2027-06-02').value =
     'Bad | javascript:alert(1)\nMap | https://example.com/';
   app.saveDayEditor('2027-06-02');
   await tick();
   assert.equal(document.querySelector('#day-2027-06-02 .day-title').textContent, hostile);
   assert.equal(document.querySelectorAll('.day-title img').length, 0);
-  assert.equal(app.tripDays[1].gettingThere.length, 1);
+  assert.equal(app.tripDays[1].links.length, 1);
   assert.equal(app.getDayNote('2027-06-02'), 'Lunch and memories');
 
   const photoIds = [];
@@ -423,5 +423,77 @@ test('trip date range and destination clock are editable, validated and archived
   assert.equal(archive.window.document.querySelector('#tripEditor'), null);
   const favicon = decodeURIComponent(document.querySelector('link[rel="icon"]').href);
   assert.match(favicon, /ellipse/);
+  assert.equal(live.errors.length, 0);
+});
+
+test('updated day sections preserve older entries through editing, reload and export', async (t) => {
+  const oldDays = config.days.map((day) => ({ ...day }));
+  oldDays[0] = {
+    ...oldDays[0],
+    accommodation: ['Sample hotel'],
+    parking: ['Garage closes at 9pm'],
+    food: ['Lunch reservation'],
+    gettingThere: [{ text: 'Directions', url: 'https://example.com/map' }],
+    attractionLinks: [{ text: 'Tickets', url: 'https://example.com/tickets' }],
+  };
+  const migrated = validateDays(oldDays);
+  assert.deepEqual(migrated[0].notes, ['Parking: Garage closes at 9pm', 'Food: Lunch reservation']);
+  assert.deepEqual(validateDays(migrated), migrated);
+  const database = new IDBFactory();
+  const live = openDashboard(database, { [`trip:${config.id}:days:v1`]: JSON.stringify(oldDays) });
+  t.after(() => live.window.close());
+  await tick();
+  const app = live.window.TripTest;
+  const document = live.window.document;
+  const headings = () =>
+    [...document.querySelectorAll('#day-2027-06-01 .grid h3')].map((el) => el.textContent);
+  assert.deepEqual(headings(), [
+    'Strict Times',
+    'Itinerary',
+    'Transport',
+    'Accommodation',
+    'Bookings / Notes',
+    'Links',
+  ]);
+  assert.match(
+    document.getElementById('day-2027-06-01').textContent,
+    /Parking: Garage closes at 9pm/,
+  );
+  app.openDayEditor('2027-06-01');
+  assert.equal(document.getElementById('edit-accommodation-2027-06-01').value, 'Sample hotel');
+  assert.match(document.getElementById('edit-links-2027-06-01').value, /Directions.*\nTickets/);
+  document.getElementById('edit-accommodation-2027-06-01').value = 'Another hotel\nCheck-in 3pm';
+  app.saveDayEditor('2027-06-01');
+  await tick();
+  assert.deepEqual([...app.tripDays[0].accommodation], ['Another hotel', 'Check-in 3pm']);
+  assert.equal(app.tripDays[0].links.length, 2);
+  assert.equal('parking' in app.tripDays[0], false);
+  const payload = await app.buildArchivePayload();
+  const archive = new JSDOM(app.buildArchiveHtml(payload, css));
+  t.after(() => archive.window.close());
+  assert.deepEqual(
+    [...archive.window.document.querySelectorAll('#day-2027-06-01 .grid h3')].map(
+      (el) => el.textContent,
+    ),
+    headings(),
+  );
+  assert.match(
+    archive.window.document.getElementById('day-2027-06-01').textContent,
+    /Another hotel/,
+  );
+  const saved = Object.fromEntries(
+    Object.keys(live.window.localStorage).map((key) => [
+      key,
+      live.window.localStorage.getItem(key),
+    ]),
+  );
+  const reload = openDashboard(database, saved);
+  t.after(() => reload.window.close());
+  await tick();
+  assert.deepEqual(
+    [...reload.window.TripTest.tripDays[0].accommodation],
+    ['Another hotel', 'Check-in 3pm'],
+  );
+  assert.equal(reload.window.TripTest.tripDays[0].links.length, 2);
   assert.equal(live.errors.length, 0);
 });

@@ -122,11 +122,9 @@ export function renderArchiveDay(day, payload) {
         ${section('Strict Times', day.strictTimes?.length ? buildList(day.strictTimes, 'strict-list') : '<p>No hard timing saved</p>', 'strict-box')}
         ${section('Itinerary', buildList(day.itinerary))}
         ${section('Transport', buildList(day.transport))}
-        ${section('Parking', buildList(day.parking))}
-        ${section('Food', buildList(day.food))}
+        ${section('Accommodation', buildList(day.accommodation))}
         ${section('Bookings / Notes', buildList([...(day.bookings || []), ...(day.notes || [])]))}
-        ${section('Getting There', renderLinkButtons(day.gettingThere))}
-        ${section('Attraction Info', renderLinkButtons(day.attractionLinks))}
+        ${section('Links', renderLinkButtons(day.links))}
       </div>
       <div class="notes-tools"><div class="notes-card"><h3>Day Notes</h3><div class="archive-note">${escapeHtml(note || 'No notes saved.')}</div></div></div>
       </div>

@@ -1,14 +1,5 @@
 // Configuration and stored-day validation, independent of the browser UI.
-const listFields = [
-  'strictTimes',
-  'itinerary',
-  'transport',
-  'parking',
-  'food',
-  'bookings',
-  'notes',
-];
-const linkFields = ['gettingThere', 'attractionLinks'];
+const listFields = ['strictTimes', 'itinerary', 'transport', 'accommodation', 'bookings', 'notes'];
 
 export function validateDays(days) {
   if (!Array.isArray(days) || !days.length) throw new Error('At least one trip day is required.');
@@ -31,12 +22,28 @@ export function validateDays(days) {
       };
       for (const field of listFields)
         result[field] = Array.isArray(day[field]) ? day[field].map(String) : [];
-      for (const field of linkFields)
-        result[field] = Array.isArray(day[field])
-          ? day[field]
-              .filter((link) => link && /^https?:\/\//i.test(link.url))
-              .map((link) => ({ text: String(link.text || ''), url: String(link.url) }))
-          : [];
+      // Preserve entries from older templates without keeping removed sections.
+      for (const field of ['parking', 'food']) {
+        if (Array.isArray(day[field]))
+          result.notes.push(
+            ...day[field].map(
+              (text) => `${field === 'parking' ? 'Parking' : 'Food'}: ${String(text)}`,
+            ),
+          );
+      }
+      const links = ['links', 'gettingThere', 'attractionLinks'].flatMap((field) =>
+        Array.isArray(day[field]) ? day[field] : [],
+      );
+      const seen = new Set();
+      result.links = links
+        .filter((link) => link && /^https?:\/\//i.test(link.url))
+        .map((link) => ({ text: String(link.text || ''), url: String(link.url) }))
+        .filter((link) => {
+          const key = JSON.stringify([link.text, link.url]);
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
       return result;
     })
     .sort((a, b) => a.date.localeCompare(b.date));
