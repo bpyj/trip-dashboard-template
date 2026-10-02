@@ -19,7 +19,18 @@
     <div class="wrap">
       <header class="hero">
         <div class="trip-title-row">
-          <h1 class="title" id="tripTitle">Trip Dashboard</h1>
+          <h1 class="title">
+            <button
+              class="heading-toggle"
+              id="tripOverviewToggle"
+              type="button"
+              aria-expanded="false"
+              aria-controls="tripOverviewBody"
+            >
+              <span id="tripTitle">Trip Dashboard</span
+              ><span class="panel-toggle-icon" aria-hidden="true">+</span>
+            </button>
+          </h1>
           <button
             class="btn secondary"
             id="editTripBtn"
@@ -32,57 +43,59 @@
           </button>
         </div>
         <p class="subtitle" id="tripSubtitle">Plan, record and remember your trip.</p>
-        <form class="editor-card hidden" id="tripEditor" data-editable-only>
-          <div class="editor-grid">
-            <div class="editor-field full">
-              <label class="editor-label" for="editTripTitle">Trip title</label>
-              <input class="editor-input" id="editTripTitle" required maxlength="200" />
+        <div id="tripOverviewBody" class="hidden">
+          <form class="editor-card hidden" id="tripEditor" data-editable-only>
+            <div class="editor-grid">
+              <div class="editor-field full">
+                <label class="editor-label" for="editTripTitle">Trip title</label>
+                <input class="editor-input" id="editTripTitle" required maxlength="200" />
+              </div>
+              <div class="editor-field full">
+                <label class="editor-label" for="editTripSubtitle">Subtitle</label>
+                <input class="editor-input" id="editTripSubtitle" maxlength="500" />
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="editTripStartDate">Start date</label>
+                <input class="editor-input" id="editTripStartDate" type="date" required />
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="editTripEndDate">End date</label>
+                <input class="editor-input" id="editTripEndDate" type="date" required />
+              </div>
+              <div class="editor-field full">
+                <label class="editor-label" for="editTripTimeZone">Destination time zone</label>
+                <input
+                  class="editor-input"
+                  id="editTripTimeZone"
+                  list="tripTimeZones"
+                  required
+                  placeholder="Asia/Tokyo"
+                />
+                <datalist id="tripTimeZones">
+                  <option value="Asia/Tokyo"></option>
+                  <option value="Asia/Singapore"></option>
+                  <option value="Asia/Seoul"></option>
+                  <option value="Asia/Bangkok"></option>
+                  <option value="Europe/London"></option>
+                  <option value="Europe/Paris"></option>
+                  <option value="America/New_York"></option>
+                  <option value="Australia/Sydney"></option>
+                  <option value="UTC"></option>
+                </datalist>
+                <div class="editor-help">Choose a suggestion or enter another city time zone.</div>
+              </div>
             </div>
-            <div class="editor-field full">
-              <label class="editor-label" for="editTripSubtitle">Subtitle</label>
-              <input class="editor-input" id="editTripSubtitle" maxlength="500" />
+            <p class="editor-help">
+              The date range describes your trip. Existing daily plans keep their own dates.
+            </p>
+            <div class="actions">
+              <button class="btn" type="submit">Save Trip</button>
+              <button class="btn secondary" id="cancelTripBtn" type="button">Cancel</button>
             </div>
-            <div class="editor-field">
-              <label class="editor-label" for="editTripStartDate">Start date</label>
-              <input class="editor-input" id="editTripStartDate" type="date" required />
-            </div>
-            <div class="editor-field">
-              <label class="editor-label" for="editTripEndDate">End date</label>
-              <input class="editor-input" id="editTripEndDate" type="date" required />
-            </div>
-            <div class="editor-field full">
-              <label class="editor-label" for="editTripTimeZone">Destination time zone</label>
-              <input
-                class="editor-input"
-                id="editTripTimeZone"
-                list="tripTimeZones"
-                required
-                placeholder="Asia/Tokyo"
-              />
-              <datalist id="tripTimeZones">
-                <option value="Asia/Tokyo"></option>
-                <option value="Asia/Singapore"></option>
-                <option value="Asia/Seoul"></option>
-                <option value="Asia/Bangkok"></option>
-                <option value="Europe/London"></option>
-                <option value="Europe/Paris"></option>
-                <option value="America/New_York"></option>
-                <option value="Australia/Sydney"></option>
-                <option value="UTC"></option>
-              </datalist>
-              <div class="editor-help">Choose a suggestion or enter another city time zone.</div>
-            </div>
-          </div>
-          <p class="editor-help">
-            The date range describes your trip. Existing daily plans keep their own dates.
-          </p>
-          <div class="actions">
-            <button class="btn" type="submit">Save Trip</button>
-            <button class="btn secondary" id="cancelTripBtn" type="button">Cancel</button>
-          </div>
-          <p id="tripEditorStatus" role="status"></p>
-        </form>
-        <div class="summary-grid"></div>
+            <p id="tripEditorStatus" role="status"></p>
+          </form>
+          <div class="summary-grid"></div>
+        </div>
         <div id="archiveBanner" class="archive-banner" style="display: none">
           Saved archive · Itinerary, notes and photos are view-only.
         </div>
@@ -90,7 +103,18 @@
 
       <section class="panel" aria-labelledby="flightHeading">
         <div class="panel-heading">
-          <h2 id="flightHeading">Travel Information</h2>
+          <h2 id="flightHeading">
+            <button
+              class="heading-toggle"
+              id="travelOverviewToggle"
+              type="button"
+              aria-expanded="false"
+              aria-controls="travelOverviewBody"
+            >
+              <span>Travel Information</span
+              ><span class="panel-toggle-icon" aria-hidden="true">+</span>
+            </button>
+          </h2>
           <button
             class="btn"
             id="editTravelBtn"
@@ -102,15 +126,17 @@
             Edit Travel
           </button>
         </div>
-        <div class="grid" id="travelInfo"></div>
-        <form class="editor-card hidden" id="travelEditor" data-editable-only>
-          <div class="editor-grid" id="travelEditorFields"></div>
-          <div class="actions">
-            <button class="btn" type="submit">Save Travel</button>
-            <button class="btn secondary" id="cancelTravelBtn" type="button">Cancel</button>
-          </div>
-          <p id="travelEditorStatus" role="status"></p>
-        </form>
+        <div id="travelOverviewBody" class="hidden">
+          <div class="grid" id="travelInfo"></div>
+          <form class="editor-card hidden" id="travelEditor" data-editable-only>
+            <div class="editor-grid" id="travelEditorFields"></div>
+            <div class="actions">
+              <button class="btn" type="submit">Save Travel</button>
+              <button class="btn secondary" id="cancelTravelBtn" type="button">Cancel</button>
+            </div>
+            <p id="travelEditorStatus" role="status"></p>
+          </form>
+        </div>
       </section>
 
       <main class="days" id="daysContainer" aria-label="Daily itinerary"></main>

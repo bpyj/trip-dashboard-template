@@ -7,7 +7,7 @@ A reusable, mobile-friendly trip dashboard. Personalise one configuration file f
 - Edit Trip saves the title, subtitle, start/end dates and destination time zone in this browser.
 - Date range and time zone summary cards follow those settings. Changing the date range leaves existing daily plans and their notes/photos on their original dates.
 - A generic globe favicon can be replaced when personalising a trip.
-- Collapsible daily plans with an editor and an Add Day button.
+- Collapsible trip details, travel information and daily plans; all start collapsed. Edit buttons open the relevant panel, and day albums remain accessible while collapsed.
 - Edit Travel changes travel section titles and details, saved in the browser and included in archives.
 - Day notes saved in the browser.
 - Photo uploads, compression, album browsing, captions and deletion.
@@ -86,6 +86,7 @@ The template contains fictional sample plans and no personal booking references,
 | `src/model.js`             | Configuration and stored-day validation.                  |
 | `src/state.js`             | Current trip days and DOM references.                     |
 | `src/storage.js`           | Storage keys, notes and transactional photo persistence.  |
+| `src/panels.js`            | Overview panel toggles.                                   |
 | `src/travel.js`            | Travel information editor.                                |
 | `src/trip.js`              | Trip settings editor.                                     |
 | `src/days.js`              | Day editor and adding days.                               |

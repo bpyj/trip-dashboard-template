@@ -1,3 +1,4 @@
+import { initOverviewPanels } from './panels.js';
 import { initTravelEditor } from './travel.js';
 import { initTripEditor } from './trip.js';
 import { buildDayNotesPayload, exportHtmlArchive, revokeCurrentExportUrl } from './archive.js';
@@ -143,6 +144,7 @@ window.addEventListener('beforeunload', () => {
 
 (async function init() {
   renderTripInfo();
+  initOverviewPanels();
   initTripEditor();
   initTravelEditor();
   renderDays();

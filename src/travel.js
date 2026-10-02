@@ -1,3 +1,4 @@
+import { setOverviewExpanded } from './panels.js';
 import { tripTravel } from './state.js';
 import { saveTravelInfo } from './storage.js';
 import { validateTravel } from './model.js';
@@ -17,6 +18,7 @@ export function initTravelEditor() {
     button.focus({ preventScroll: true });
   };
   button.addEventListener('click', () => {
+    setOverviewExpanded('travel', true);
     fields.innerHTML = tripTravel
       .map(
         (item, index) => `

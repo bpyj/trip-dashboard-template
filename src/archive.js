@@ -385,6 +385,7 @@ export function buildArchiveHtml(payload, css) {
   root.querySelector('#daysContainer').innerHTML = payload.tripDays
     .map((day) => renderArchiveDay(day, payload))
     .join('');
+  root.querySelector('#tripOverviewToggle').replaceWith(root.querySelector('#tripTitle'));
   root.querySelectorAll('[data-editable-only]').forEach((element) => element.remove());
   root.querySelectorAll('script').forEach((script) => script.remove());
   const enhancement = document.createElement('script');
@@ -409,6 +410,7 @@ export function buildArchiveHtml(payload, css) {
   summary
     .querySelector('.archive-info-body')
     .appendChild(root.querySelector('.hero .summary-grid'));
+  root.querySelector('#tripOverviewBody').remove();
   const saved = document.createElement('p');
   saved.className = 'backup-note';
   saved.textContent = `Saved ${formatDateTime(payload.exportedAt)}`;
@@ -419,8 +421,9 @@ export function buildArchiveHtml(payload, css) {
   flights.className = 'panel archive-info-panel';
   flights.innerHTML =
     '<summary class="archive-info-toggle">Travel Information<span class="toggle-icon" aria-hidden="true">+</span></summary><div class="archive-info-body"></div>';
-  while (flightSection.firstChild)
-    flights.querySelector('.archive-info-body').appendChild(flightSection.firstChild);
+  flights
+    .querySelector('.archive-info-body')
+    .appendChild(flightSection.querySelector('#travelInfo'));
   flightSection.remove();
   days.after(summary, flights);
   root.querySelectorAll('details').forEach((details) => details.removeAttribute('open'));

@@ -546,6 +546,43 @@ test('travel information can be edited, cancelled, reloaded and exported', async
   assert.equal(exported.querySelector('#travelInfo h3').textContent, title);
   assert.match(exported.getElementById('travelInfo').textContent, /Sample hotel/);
   assert.equal(exported.querySelector('#travelEditor,#editTravelBtn,#todayHeading'), null);
+  assert.equal(exported.getElementById('travelInfo').closest('.hidden'), null);
   assert.equal(exported.querySelectorAll('#travelInfo img,#travelInfo script').length, 0);
+  assert.equal(live.errors.length, 0);
+});
+
+test('overview panels and all days start collapsed and preserve edits while toggling', async (t) => {
+  const live = openDashboard(new IDBFactory());
+  t.after(() => live.window.close());
+  await tick();
+  const document = live.window.document;
+  assert.equal(document.querySelectorAll('.day-card.open').length, 0);
+  for (const name of ['trip', 'travel']) {
+    const button = document.getElementById(`${name}OverviewToggle`);
+    const body = document.getElementById(`${name}OverviewBody`);
+    assert.equal(button.getAttribute('aria-expanded'), 'false');
+    assert.equal(body.classList.contains('hidden'), true);
+    button.click();
+    assert.equal(button.getAttribute('aria-expanded'), 'true');
+    assert.equal(body.classList.contains('hidden'), false);
+    button.click();
+    assert.equal(body.classList.contains('hidden'), true);
+  }
+  document.getElementById('editTripBtn').click();
+  assert.equal(document.getElementById('tripOverviewBody').classList.contains('hidden'), false);
+  document.getElementById('editTripTitle').value = 'Draft trip title';
+  document.getElementById('tripOverviewToggle').click();
+  document.getElementById('tripOverviewToggle').click();
+  assert.equal(document.getElementById('editTripTitle').value, 'Draft trip title');
+  document.getElementById('editTravelBtn').click();
+  assert.equal(document.getElementById('travelOverviewBody').classList.contains('hidden'), false);
+  document.getElementById('travel-details-0').value = 'Draft travel details';
+  document.getElementById('travelOverviewToggle').click();
+  document.getElementById('travelOverviewToggle').click();
+  assert.equal(document.getElementById('travel-details-0').value, 'Draft travel details');
+  document.querySelector('.day-header').click();
+  assert.equal(document.querySelector('.day-header').getAttribute('aria-expanded'), 'true');
+  document.querySelector('.day-header').click();
+  assert.equal(document.querySelectorAll('.day-card.open').length, 0);
   assert.equal(live.errors.length, 0);
 });

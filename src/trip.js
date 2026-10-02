@@ -1,3 +1,4 @@
+import { setOverviewExpanded } from './panels.js';
 import { tripInfo } from './state.js';
 import { saveTripInfo } from './storage.js';
 import { validateTripInfo } from './model.js';
@@ -19,6 +20,7 @@ export function initTripEditor() {
     button.focus({ preventScroll: true });
   };
   button.addEventListener('click', () => {
+    setOverviewExpanded('trip', true);
     title.value = tripInfo.title;
     subtitle.value = tripInfo.subtitle;
     startDate.value = tripInfo.startDate;

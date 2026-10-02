@@ -54,14 +54,14 @@ export function renderTravelInfo() {
 export function renderDays() {
   daysContainer.innerHTML = '';
 
-  tripDays.forEach((day, index) => {
+  tripDays.forEach((day) => {
     const card = document.createElement('article');
-    card.className = 'day-card' + (index === 0 ? ' open' : '');
+    card.className = 'day-card';
     card.id = `day-${day.date}`;
 
     card.innerHTML = `
       <div class="day-heading-row">
-      <button class="day-header" type="button" aria-expanded="${index === 0}" aria-controls="content-${escapeHtml(day.date)}">
+      <button class="day-header" type="button" aria-expanded="false" aria-controls="content-${escapeHtml(day.date)}">
         <div class="day-header-left">
           <div class="day-kicker-row">
   <span class="day-kicker">${escapeHtml(day.label)}</span>

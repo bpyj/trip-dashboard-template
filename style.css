@@ -905,3 +905,32 @@ select {
 .panel-heading h2 {
   margin: 0;
 }
+
+.heading-toggle {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.panel-toggle-icon {
+  font-size: 1.2rem;
+  color: var(--muted);
+}
+.panel-heading h2 {
+  flex: 1;
+  min-width: 0;
+}
+.chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
