@@ -883,3 +883,47 @@ select {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* Independent header actions keep photo albums available while days are collapsed. */
+.trip-title-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.trip-title-row .title {
+  margin-bottom: 0;
+  flex: 1;
+}
+.day-heading-row {
+  display: flex;
+  align-items: center;
+}
+.day-heading-row .day-header {
+  width: auto;
+  flex: 1;
+  min-width: 0;
+}
+.day-album-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 16px 16px 0;
+}
+.day-album-btn {
+  white-space: nowrap;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+@media (max-width: 600px) {
+  .day-album-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .day-album-btn {
+    padding: 8px;
+    font-size: 0.8rem;
+  }
+}

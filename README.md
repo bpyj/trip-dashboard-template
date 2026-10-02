@@ -4,11 +4,12 @@ A reusable, mobile-friendly trip dashboard. Personalise one configuration file f
 
 ## Features
 
+- Edit Trip beside the title saves the title and subtitle in this browser.
 - Collapsible daily plans with an editor and an Add Day button.
 - Destination time zone for Today’s Plan.
 - Day notes saved in the browser.
 - Photo uploads, compression, album browsing, captions and deletion.
-- A small album-cover thumbnail on each day card.
+- A small album-cover thumbnail and Open Album button on each day card, available while collapsed.
 - A single HTML archive containing the itinerary, notes, captions and photos.
 - Archive days start directly below the compact title, with all details collapsed.
 - Separate day-details and album controls. Archive Previous/Next buttons sit above the photo and do not use scroll-jumping links.
@@ -67,7 +68,7 @@ A GitHub repository stores the source code. A live trip link is created by publi
 
 ## Photos, archives and sharing
 
-Uploaded photos live in IndexedDB on the device/browser where they were added. Edited days and notes use localStorage. Each trip’s ID creates a separate storage namespace. These records do not sync to GitHub, another device or another person opening the live site.
+Uploaded photos live in IndexedDB on the device/browser where they were added. Edited trip headings, days and notes use localStorage. Each trip’s ID creates a separate storage namespace. These records do not sync to GitHub, another device or another person opening the live site.
 
 **Export HTML Archive** includes photos as embedded image data and writes the day content directly into one HTML file. Someone you share that file with can see the saved photos and notes without access to your phone or the live site. The archive is view-only and cannot be imported back into the editable app.
 
@@ -83,6 +84,7 @@ The template contains fictional sample plans and no personal booking references,
 | `src/model.js`             | Configuration and stored-day validation.                  |
 | `src/state.js`             | Current trip days and DOM references.                     |
 | `src/storage.js`           | Storage keys, notes and transactional photo persistence.  |
+| `src/trip.js`              | Trip title and subtitle editor.                           |
 | `src/days.js`              | Day editor and adding days.                               |
 | `src/photos.js`            | Compression, cover thumbnails and photo dialog.           |
 | `src/view.js`              | Rendering and Today’s Plan.                               |

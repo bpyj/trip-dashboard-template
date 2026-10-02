@@ -1,3 +1,4 @@
+import { initTripEditor } from './trip.js';
 import { buildDayNotesPayload, exportHtmlArchive, revokeCurrentExportUrl } from './archive.js';
 import { addNewDay, getDayIndex } from './days.js';
 import {
@@ -152,6 +153,7 @@ window.addEventListener('beforeunload', () => {
 
 (async function init() {
   renderTripInfo();
+  initTripEditor();
   renderDays();
   updateToday();
   try {

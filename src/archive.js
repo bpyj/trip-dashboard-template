@@ -383,6 +383,7 @@ export function buildArchiveHtml(payload, css) {
   root.querySelector('#daysContainer').innerHTML = payload.tripDays
     .map((day) => renderArchiveDay(day, payload))
     .join('');
+  root.querySelectorAll('[data-editable-only]').forEach((element) => element.remove());
   root.querySelectorAll('script').forEach((script) => script.remove());
   const enhancement = document.createElement('script');
   enhancement.textContent = `(${enhanceArchiveAlbums.toString()})();`;

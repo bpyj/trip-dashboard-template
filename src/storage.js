@@ -1,4 +1,5 @@
 export const TRIP_DAYS_STORAGE_KEY = `trip:${config.id}:days:v1`;
+export const TRIP_INFO_STORAGE_KEY = `trip:${config.id}:info:v1`;
 export const DB_NAME = `trip:${config.id}:photos:v1`;
 export const DB_VERSION = 1;
 export const STORE_NAME = 'photos';
@@ -11,6 +12,28 @@ import { cloneTripDays } from './utils.js';
 // Local notes and transactional IndexedDB photo persistence.
 
 let dbPromise = null;
+
+export function loadTripInfo() {
+  const defaults = { title: config.title, subtitle: config.subtitle };
+  try {
+    const saved = JSON.parse(localStorage.getItem(TRIP_INFO_STORAGE_KEY));
+    if (
+      typeof saved?.title !== 'string' ||
+      !saved.title.trim() ||
+      saved.title.length > 200 ||
+      typeof saved.subtitle !== 'string' ||
+      saved.subtitle.length > 500
+    )
+      return defaults;
+    return { title: saved.title.trim(), subtitle: saved.subtitle.trim() };
+  } catch {
+    return defaults;
+  }
+}
+
+export function saveTripInfo(info) {
+  localStorage.setItem(TRIP_INFO_STORAGE_KEY, JSON.stringify(info));
+}
 
 export function loadEditableTripDays() {
   try {

@@ -1,17 +1,17 @@
 import config from '../trip.config.js';
 import { closeDayEditor, openDayEditor, saveDayEditor } from './days.js';
-import { renderPhotoSummary, saveFilesForDay } from './photos.js';
-import { daysContainer, tripDays, tripSubtitleEl, tripTitleEl } from './state.js';
+import { openDayAlbum, renderPhotoSummary, saveFilesForDay } from './photos.js';
+import { daysContainer, tripDays, tripInfo, tripSubtitleEl, tripTitleEl } from './state.js';
 import { getDayNote, saveDayNoteFromTextarea } from './storage.js';
 import { buildList, escapeHtml, statusLabel, renderLinkButtons, formatDayDate } from './utils.js';
 
 // Configuration rendering, day cards and the destination clock.
 
 export function renderTripInfo() {
-  document.title = config.title;
-  tripTitleEl.textContent = config.title;
-  tripSubtitleEl.textContent = config.subtitle;
-  document.querySelector('meta[name="description"]').content = config.subtitle;
+  document.title = tripInfo.title;
+  tripTitleEl.textContent = tripInfo.title;
+  tripSubtitleEl.textContent = tripInfo.subtitle;
+  document.querySelector('meta[name="description"]').content = tripInfo.subtitle;
   document.querySelector('.summary-grid').innerHTML = config.summary
     .map(
       (item) =>
@@ -37,6 +37,7 @@ export function renderDays() {
     card.id = `day-${day.date}`;
 
     card.innerHTML = `
+      <div class="day-heading-row">
       <button class="day-header" type="button" aria-expanded="${index === 0}" aria-controls="content-${escapeHtml(day.date)}">
         <div class="day-header-left">
           <div class="day-kicker-row">
@@ -46,11 +47,13 @@ export function renderDays() {
           <div class="day-title">${escapeHtml(day.title)}</div>
           <div class="day-summary">${escapeHtml(day.summary)}</div>
         </div>
-        <div class="day-header-right">
-          <div class="day-cover" id="day-cover-${escapeHtml(day.date)}"><span>No photo</span></div>
-          <div class="toggle-icon">+</div>
-        </div>
+        <span class="toggle-icon" aria-hidden="true">+</span>
       </button>
+      <div class="day-album-actions">
+        <div class="day-cover" id="day-cover-${escapeHtml(day.date)}"><span>No photo</span></div>
+        <button class="btn secondary day-album-btn" type="button" disabled aria-label="Open photo album for ${escapeHtml(day.label)}">Open Album</button>
+      </div>
+      </div>
       <div class="day-content" id="content-${escapeHtml(day.date)}">
         <div class="status-row">${statusLabel(day.status)}</div>
 
@@ -72,7 +75,7 @@ export function renderDays() {
         ${`
           <div class="day-editor">
             <div class="actions" style="margin-top:0;">
-              <button class="btn secondary edit-day-btn" type="button" data-day-id="${escapeHtml(day.date)}">Edit Day</button>
+              <button class="btn edit-day-btn" type="button" data-day-id="${escapeHtml(day.date)}">Edit Day</button>
             </div>
 
             <div class="editor-card hidden" id="day-editor-${escapeHtml(day.date)}">
@@ -186,6 +189,16 @@ export function renderDays() {
       card
         .querySelector('.day-header')
         .setAttribute('aria-expanded', String(card.classList.contains('open')));
+    });
+
+    card.querySelector('.day-album-btn').addEventListener('click', async () => {
+      try {
+        await openDayAlbum(day.date);
+      } catch (error) {
+        document.getElementById('appStatus').textContent =
+          'Unable to open photos. Please try again.';
+        console.error(error);
+      }
     });
 
     const notesTextarea = card.querySelector(`#notes-${day.date}`);

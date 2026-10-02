@@ -18,8 +18,37 @@
   <body>
     <div class="wrap">
       <header class="hero">
-        <h1 class="title" id="tripTitle">Trip Dashboard</h1>
+        <div class="trip-title-row">
+          <h1 class="title" id="tripTitle">Trip Dashboard</h1>
+          <button
+            class="btn secondary"
+            id="editTripBtn"
+            type="button"
+            data-editable-only
+            aria-expanded="false"
+            aria-controls="tripEditor"
+          >
+            Edit Trip
+          </button>
+        </div>
         <p class="subtitle" id="tripSubtitle">Plan, record and remember your trip.</p>
+        <form class="editor-card hidden" id="tripEditor" data-editable-only>
+          <div class="editor-grid">
+            <div class="editor-field full">
+              <label class="editor-label" for="editTripTitle">Trip title</label>
+              <input class="editor-input" id="editTripTitle" required maxlength="200" />
+            </div>
+            <div class="editor-field full">
+              <label class="editor-label" for="editTripSubtitle">Subtitle</label>
+              <input class="editor-input" id="editTripSubtitle" maxlength="500" />
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn" type="submit">Save Trip</button>
+            <button class="btn secondary" id="cancelTripBtn" type="button">Cancel</button>
+          </div>
+          <p id="tripEditorStatus" role="status"></p>
+        </form>
         <div class="summary-grid"></div>
         <div id="archiveBanner" class="archive-banner" style="display: none">
           Saved archive · Itinerary, notes and photos are view-only.

@@ -36,14 +36,14 @@ export function openPhotoModal(photos, startIndex = 0, dayId = '') {
   photoModal.classList.add('open');
   photoModal.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
-  photoModalClose.focus();
+  photoModalClose.focus({ preventScroll: true });
 }
 
 export function closePhotoModal() {
   photoModal.classList.remove('open');
   photoModal.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
-  albumReturnFocus?.focus();
+  albumReturnFocus?.focus({ preventScroll: true });
   activeAlbum = [];
   activeAlbumIndex = 0;
   activeAlbumDayId = '';
@@ -114,7 +114,14 @@ export async function deleteActivePhoto() {
   await renderPhotoSummary(dayIdToRefresh);
 }
 
+export async function openDayAlbum(dayId) {
+  const photos = await loadPhotosByDay(dayId);
+  openPhotoModal(photos, 0, dayId);
+}
+
 export function renderDayCover(dayId, photos) {
+  const button = document.querySelector(`#day-${dayId} .day-album-btn`);
+  if (button) button.disabled = !photos.length;
   const slot = document.getElementById(`day-cover-${dayId}`);
   if (!slot) return;
 

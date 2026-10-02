@@ -78,6 +78,25 @@ test('editing, storage, photos and self-contained archives survive the refactor'
   assert.equal(document.querySelectorAll('.day-card').length, 3);
   assert.equal(document.title, config.title);
   assert.equal(app.getDayNote('2027-06-02'), '');
+  const editedTitle = 'Our trip <img src=x onerror=alert(1)>';
+  document.getElementById('editTripBtn').click();
+  assert.equal(document.getElementById('tripEditor').classList.contains('hidden'), false);
+  document.getElementById('editTripTitle').value = editedTitle;
+  document.getElementById('editTripSubtitle').value = 'Family memories';
+  document
+    .getElementById('tripEditor')
+    .dispatchEvent(new window.Event('submit', { cancelable: true }));
+  assert.equal(document.title, editedTitle);
+  assert.equal(document.getElementById('tripTitle').textContent, editedTitle);
+  assert.equal(document.querySelectorAll('#tripTitle img').length, 0);
+  assert.equal(document.getElementById('tripSubtitle').textContent, 'Family memories');
+  assert.equal(document.getElementById('tripEditor').classList.contains('hidden'), true);
+  document.getElementById('editTripBtn').click();
+  document.getElementById('editTripTitle').value = 'Discard this';
+  document.getElementById('cancelTripBtn').click();
+  assert.equal(document.title, editedTitle);
+  assert.equal(document.querySelector('#day-2027-06-02 .day-album-btn').disabled, true);
+  assert.equal(document.querySelector('.edit-day-btn').classList.contains('secondary'), false);
   app.updateToday(new window.Date('2027-05-31T14:59:59Z'), false);
   assert.equal(document.getElementById('todayDate').textContent, 'Trip Preview');
   app.updateToday(new window.Date('2027-05-31T15:00:00Z'), false);
@@ -113,10 +132,21 @@ test('editing, storage, photos and self-contained archives survive the refactor'
   assert.equal(photos.length, 3);
   assert.equal(photos[0].caption, 'Album cover');
   await app.renderPhotoSummary('2027-06-02');
-  app.openPhotoModal(photos, 0, '2027-06-02');
+  const dayCard = document.getElementById('day-2027-06-02');
+  const albumButton = dayCard.querySelector('.day-album-btn');
+  if (dayCard.classList.contains('open')) dayCard.querySelector('.day-header').click();
+  assert.equal(dayCard.classList.contains('open'), false);
+  assert.equal(albumButton.disabled, false);
+  albumButton.focus();
+  albumButton.click();
+  await tick();
+  assert.equal(document.getElementById('photoModal').classList.contains('open'), true);
+  assert.equal(dayCard.classList.contains('open'), false);
+  assert.equal(dayCard.querySelector('.day-header').getAttribute('aria-expanded'), 'false');
   app.showNextPhoto();
   assert.equal(document.getElementById('photoModalCounter').textContent, '2 / 3');
   app.closePhotoModal();
+  assert.equal(document.activeElement, albumButton);
 
   const payload = await app.buildArchivePayload();
   const html = app.buildArchiveHtml(payload, css);
@@ -126,6 +156,8 @@ test('editing, storage, photos and self-contained archives survive the refactor'
   const archive = preview.window.document;
   assert.equal(archive.querySelector('.hero').nextElementSibling.id, 'daysContainer');
   assert.equal(archive.querySelectorAll('details[open]').length, 0);
+  assert.equal(archive.querySelectorAll('[data-editable-only]').length, 0);
+  assert.equal(archive.getElementById('tripTitle').textContent, editedTitle);
   assert.equal(archive.querySelectorAll('.day-card').length, 3);
   assert.equal(archive.querySelectorAll('.edit-day-btn,.photo-modal,.backup-panel').length, 0);
   assert.equal(archive.querySelectorAll('script[src],link[rel="stylesheet"]').length, 0);
@@ -222,6 +254,11 @@ test('editing, storage, photos and self-contained archives survive the refactor'
   const reload = openDashboard(database, saved);
   t.after(() => reload.dom.window.close());
   await tick();
+  assert.equal(reload.window.document.title, editedTitle);
+  assert.equal(
+    reload.window.document.getElementById('tripSubtitle').textContent,
+    'Family memories',
+  );
   assert.equal(reload.window.TripTest.tripDays[1].title, hostile);
   assert.equal((await reload.window.TripTest.loadPhotosByDay('2027-06-02')).length, 3);
   await app.deletePhotoRecord(photoIds[0]);
