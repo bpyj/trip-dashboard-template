@@ -20,10 +20,7 @@ const bundle = await build({
   write: false,
 });
 const embedded = template
-  .replace(
-    '<link id="appStyles" rel="stylesheet" href="style.css">',
-    () => `<style id="appStyles">${css}</style>`,
-  )
+  .replace(/<link\b(?=[^>]*\bid="appStyles")[^>]*>/, () => `<style id="appStyles">${css}</style>`)
   .replace(
     '<script id="appScript" type="module" src="src/app.js"></script>',
     () => `<script>${bundle.outputFiles[0].text.replace(/<\/script/gi, '<\\/script')}</script>`,
@@ -168,4 +165,83 @@ test('editing, storage, photos and self-contained archives survive the refactor'
   );
   assert.throws(() => live.tools[1].execute({ date: '1900-01-01' }));
   assert.equal(live.errors.length, 0);
+});
+
+test('built standalone exports photos and notes locally without fetching CSS', async (t) => {
+  // Exercise the delivered artifact and export button, not just archive rendering.
+  await import('../scripts/build.mjs');
+  const html = await readFile('dist/Trip-Editable.html', 'utf8');
+  const blobs = [];
+  const errors = [];
+  const virtualConsole = new VirtualConsole();
+  virtualConsole.on('jsdomError', (error) => errors.push(error));
+  const dom = new JSDOM(html, {
+    url: 'https://local-file-test.example/',
+    runScripts: 'dangerously',
+    virtualConsole,
+    beforeParse(window) {
+      window.indexedDB = new IDBFactory();
+      window.HTMLElement.prototype.scrollIntoView = function () {};
+      window.fetch = () => {
+        throw new Error('Standalone export must not fetch files.');
+      };
+      window.URL.createObjectURL = (blob) => {
+        blobs.push(blob);
+        return 'blob:local-archive';
+      };
+      window.URL.revokeObjectURL = () => {};
+    },
+  });
+  t.after(() => dom.window.close());
+  await tick();
+  const window = dom.window;
+  const document = window.document;
+  assert.equal(document.getElementById('appStyles').tagName, 'STYLE');
+  assert.equal(document.querySelectorAll('link[rel="stylesheet"],script[src]').length, 0);
+  assert.equal(document.querySelectorAll('.day-card').length, 3);
+  document.getElementById('notes-2027-06-01').value = 'Local export works';
+  const db = await new Promise((resolve, reject) => {
+    const request = window.indexedDB.open(`trip:${config.id}:photos:v1`, 1);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  await new Promise((resolve, reject) => {
+    const transaction = db.transaction('photos', 'readwrite');
+    transaction.objectStore('photos').add({
+      dayId: '2027-06-01',
+      name: 'local.jpg',
+      dataUrl: 'data:image/jpeg;base64,/9j/2Q==',
+      caption: 'Local photo',
+      createdAt: '2027-06-01T00:00:00Z',
+    });
+    transaction.oncomplete = resolve;
+    transaction.onerror = () => reject(transaction.error);
+  });
+  db.close();
+  document.getElementById('exportHtmlBtn').click();
+  for (let attempt = 0; attempt < 20 && !blobs.length; attempt++) await tick();
+  assert.equal(blobs.length, 1, document.getElementById('appStatus').textContent);
+  assert.match(document.getElementById('openExportLink').download, /-archive\.html$/);
+  const exported = await new Promise((resolve, reject) => {
+    const reader = new window.FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(blobs[0]);
+  });
+  const archive = new JSDOM(exported);
+  t.after(() => archive.window.close());
+  assert.equal(
+    archive.window.document.querySelector('.archive-note').textContent,
+    'Local export works',
+  );
+  assert.equal(
+    archive.window.document.querySelector('.archive-photo img').getAttribute('src'),
+    'data:image/jpeg;base64,/9j/2Q==',
+  );
+  assert.equal(archive.window.document.querySelectorAll('details[open]').length, 0);
+  assert.equal(
+    archive.window.document.querySelectorAll('link[rel="stylesheet"],script[src]').length,
+    0,
+  );
+  assert.equal(errors.length, 0, errors.map((error) => error.message).join('\n'));
 });

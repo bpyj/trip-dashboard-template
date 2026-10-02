@@ -18,10 +18,7 @@ await writeFile('dist/app.js', script);
 await copyFile('style.css', 'dist/style.css');
 // One editable file for use outside a hosted site, including in a mobile editor.
 const standalone = hosted
-  .replace(
-    '<link id="appStyles" rel="stylesheet" href="style.css">',
-    () => `<style id="appStyles">${css}</style>`,
-  )
+  .replace(/<link\b(?=[^>]*\bid="appStyles")[^>]*>/, () => `<style id="appStyles">${css}</style>`)
   .replace(
     '<script id="appScript" defer src="app.js"></script>',
     () => `<script id="appScript">${script.replace(/<\/script/gi, '<\\/script')}</script>`,
