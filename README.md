@@ -10,7 +10,7 @@ A reusable, mobile-friendly trip dashboard. Personalise one configuration file f
 - Collapsible trip details, travel information and daily plans; all start collapsed. Edit buttons open the relevant panel, and day albums remain accessible while collapsed.
 - Edit Travel changes travel section titles and details, saved in the browser and included in archives.
 - Day notes saved in the browser.
-- Photo uploads, compression, album browsing, captions and deletion.
+- Each day’s Open Album button opens a full photo manager, including empty albums: upload with compression, browse, edit captions and delete photos. Photos are managed in the overlay, without a separate section in daily details.
 - A small album-cover thumbnail and Open Album button on each day card, available while collapsed.
 - A single HTML archive containing the itinerary, notes, captions and photos.
 - Archive days start directly below the compact title, with all details collapsed.

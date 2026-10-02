@@ -1,6 +1,6 @@
 import config from '../trip.config.js';
 import { closeDayEditor, openDayEditor, saveDayEditor } from './days.js';
-import { openDayAlbum, renderPhotoSummary, saveFilesForDay } from './photos.js';
+import { openDayAlbum, refreshDayPhotos } from './photos.js';
 import {
   daysContainer,
   tripDays,
@@ -74,7 +74,7 @@ export function renderDays() {
       </button>
       <div class="day-album-actions">
         <div class="day-cover" id="day-cover-${escapeHtml(day.date)}"><span>No photo</span></div>
-        <button class="btn secondary day-album-btn" type="button" disabled aria-label="Open photo album for ${escapeHtml(day.label)}">Open Album</button>
+        <button class="btn secondary day-album-btn" type="button" aria-label="Open photo album for ${escapeHtml(day.label)}">Open Album</button>
       </div>
       </div>
       <div class="day-content" id="content-${escapeHtml(day.date)}">
@@ -182,15 +182,6 @@ export function renderDays() {
           </div>
         </div>
 
-        <div class="photo-tools">
-          <h3 style="margin:0 0 10px; font-size:0.98rem;">Photos</h3>
-          
-          <div class="photo-toolbar">
-            <label class="btn " for="album-input-${escapeHtml(day.date)}" role="button" tabindex="0">Upload from Album</label>
-          </div>
-          <input class="photo-input" id="album-input-${escapeHtml(day.date)}" type="file" accept="image/*" multiple data-day-id="${escapeHtml(day.date)}"  />
-          <div id="photo-summary-${escapeHtml(day.date)}"></div>
-        </div>
       </div>
     `;
 
@@ -226,25 +217,6 @@ export function renderDays() {
       });
     }
 
-    const albumInput = card.querySelector(`#album-input-${day.date}`);
-    if (albumInput) {
-      card.querySelector('.photo-toolbar label').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          albumInput.click();
-        }
-      });
-      albumInput.addEventListener('change', async (e) => {
-        try {
-          await saveFilesForDay(day.date, e.target.files);
-          e.target.value = '';
-        } catch (err) {
-          console.error('Album photo save failed:', err);
-          alert('Unable to save photo on this device/browser.');
-        }
-      });
-    }
-
     const editDayBtn = card.querySelector(`.edit-day-btn[data-day-id="${day.date}"]`);
     if (editDayBtn) editDayBtn.addEventListener('click', () => openDayEditor(day.date));
 
@@ -274,8 +246,8 @@ export function openDayCardByDate(dateStr) {
   }, 100);
 }
 
-export async function refreshAllPhotoSummaries() {
+export async function refreshAllDayPhotos() {
   for (const day of tripDays) {
-    await renderPhotoSummary(day.date);
+    await refreshDayPhotos(day.date);
   }
 }

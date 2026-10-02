@@ -3,7 +3,7 @@ import { captureDayNotes } from './archive.js';
 import { tripDays } from './state.js';
 import { saveEditableTripDays } from './storage.js';
 import { cloneTripDays } from './utils.js';
-import { openDayCardByDate, refreshAllPhotoSummaries, renderDays } from './view.js';
+import { openDayCardByDate, refreshAllDayPhotos, renderDays } from './view.js';
 
 // Day editor and itinerary changes.
 
@@ -87,7 +87,7 @@ export function addNewDay() {
     return;
   }
   renderDays();
-  refreshAllPhotoSummaries();
+  refreshAllDayPhotos();
   openDayCardByDate(nextDate);
 }
 
@@ -167,7 +167,7 @@ export function saveDayEditor(dayId) {
     return;
   }
   renderDays();
-  refreshAllPhotoSummaries();
+  refreshAllDayPhotos();
   openDayCardByDate(dayId);
 
   setTimeout(() => {

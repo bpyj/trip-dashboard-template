@@ -27,11 +27,12 @@ let activeAlbumIndex = 0;
 let activeAlbumDayId = '';
 
 export function openPhotoModal(photos, startIndex = 0, dayId = '') {
-  if (!photos || !photos.length) return;
+  if (!Array.isArray(photos) || !dayId) return;
   albumReturnFocus = document.activeElement;
   activeAlbum = photos;
   activeAlbumIndex = startIndex;
   activeAlbumDayId = dayId;
+  document.getElementById('photoStatus').textContent = '';
   renderPhotoModal();
   photoModal.classList.add('open');
   photoModal.setAttribute('aria-hidden', 'false');
@@ -50,7 +51,21 @@ export function closePhotoModal() {
 }
 
 export function renderPhotoModal() {
-  if (!activeAlbum.length) return;
+  const hasPhoto = activeAlbum.length > 0;
+  photoModalImage.classList.toggle('hidden', !hasPhoto);
+  document.getElementById('photoModalEmpty').classList.toggle('hidden', hasPhoto);
+  photoModalCaptionInput.disabled = !hasPhoto;
+  photoModalSaveBtn.disabled = !hasPhoto;
+  photoModalDeleteBtn.disabled = !hasPhoto;
+  document.getElementById('photoPrevBtn').disabled = activeAlbum.length < 2;
+  document.getElementById('photoNextBtn').disabled = activeAlbum.length < 2;
+  if (!hasPhoto) {
+    photoModalImage.removeAttribute('src');
+    photoModalCaptionInput.value = '';
+    photoModalMeta.textContent = '';
+    photoModalCounter.textContent = '0 photos';
+    return;
+  }
 
   const photo = activeAlbum[activeAlbumIndex];
   photoModalImage.src = photo.dataUrl;
@@ -86,7 +101,7 @@ export async function saveActivePhotoCaption() {
   activeAlbum = refreshed;
   if (newIndex >= 0) activeAlbumIndex = newIndex;
   renderPhotoModal();
-  await renderPhotoSummary(activeAlbumDayId);
+  await refreshDayPhotos(activeAlbumDayId);
 }
 
 export async function deleteActivePhoto() {
@@ -99,19 +114,13 @@ export async function deleteActivePhoto() {
 
   const refreshed = await loadPhotosByDay(dayIdToRefresh);
 
-  if (!refreshed.length) {
-    await renderPhotoSummary(dayIdToRefresh);
-    closePhotoModal();
-    return;
-  }
-
   activeAlbum = refreshed;
   if (activeAlbumIndex >= activeAlbum.length) {
-    activeAlbumIndex = activeAlbum.length - 1;
+    activeAlbumIndex = Math.max(0, activeAlbum.length - 1);
   }
 
   renderPhotoModal();
-  await renderPhotoSummary(dayIdToRefresh);
+  await refreshDayPhotos(dayIdToRefresh);
 }
 
 export async function openDayAlbum(dayId) {
@@ -120,8 +129,6 @@ export async function openDayAlbum(dayId) {
 }
 
 export function renderDayCover(dayId, photos) {
-  const button = document.querySelector(`#day-${dayId} .day-album-btn`);
-  if (button) button.disabled = !photos.length;
   const slot = document.getElementById(`day-cover-${dayId}`);
   if (!slot) return;
 
@@ -134,43 +141,13 @@ export function renderDayCover(dayId, photos) {
   slot.innerHTML = `<img src="${cover.dataUrl}" alt="Cover photo for ${escapeHtml(dayId)}">`;
 }
 
-export async function renderPhotoSummary(dayId) {
-  const container = document.getElementById(`photo-summary-${dayId}`);
-  if (!container) return;
+export async function refreshDayPhotos(dayId) {
+  renderDayCover(dayId, await loadPhotosByDay(dayId));
+}
 
-  const photos = await loadPhotosByDay(dayId);
-  renderDayCover(dayId, photos);
-
-  if (!photos.length) {
-    container.innerHTML = `<div class="empty-photos">No photos yet for this day.</div>`;
-    return;
-  }
-
-  const previewPhotos = photos.slice(0, 6);
-
-  container.innerHTML = `
-    <div class="photo-summary-card">
-      <div class="photo-summary-top">
-        <div>
-          <div class="photo-summary-title">${photos.length} photo${photos.length === 1 ? '' : 's'} saved</div>
-          <div class="photo-summary-text">Cover photo is the newest photo. Tap Open Album to browse, edit captions, or delete photos.</div>
-        </div>
-        <div class="actions" style="margin-top:0;">
-          <button class="btn open-album-btn" type="button">Open Album</button>
-        </div>
-      </div>
-      <div class="photo-preview-row">
-        ${previewPhotos.map((photo) => `<img class="mini-thumb" src="${photo.dataUrl}" alt="Trip photo preview">`).join('')}
-      </div>
-    </div>
-  `;
-
-  const openBtn = container.querySelector('.open-album-btn');
-  if (openBtn) {
-    openBtn.addEventListener('click', () => {
-      openPhotoModal(photos, 0, dayId);
-    });
-  }
+export async function uploadActiveAlbumFiles(files) {
+  if (!activeAlbumDayId) throw new Error('Open a day album before uploading.');
+  await saveFilesForDay(activeAlbumDayId, files);
 }
 
 export async function compressImageToDataURL(file, maxSizeBytes = COMPRESS_TARGET_BYTES) {
@@ -252,31 +229,33 @@ export async function saveFilesForDay(dayId, fileList) {
   const files = Array.from(fileList || []);
   if (!files.length) return;
 
-  for (const file of files) {
-    if (!file.type.startsWith('image/')) continue;
+  try {
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) continue;
 
-    const compressed = await compressImageToDataURL(file, COMPRESS_TARGET_BYTES);
+      const compressed = await compressImageToDataURL(file, COMPRESS_TARGET_BYTES);
 
-    await addPhotoRecord({
-      dayId,
-      name: file.name || 'photo',
-      type: compressed.storedType,
-      originalType: file.type,
-      originalSize: file.size,
-      savedSize: compressed.savedSize,
-      wasCompressed: compressed.wasCompressed,
-      dataUrl: compressed.dataUrl,
-      caption: '',
-      createdAt: new Date().toISOString(),
-    });
-  }
+      await addPhotoRecord({
+        dayId,
+        name: file.name || 'photo',
+        type: compressed.storedType,
+        originalType: file.type,
+        originalSize: file.size,
+        savedSize: compressed.savedSize,
+        wasCompressed: compressed.wasCompressed,
+        dataUrl: compressed.dataUrl,
+        caption: '',
+        createdAt: new Date().toISOString(),
+      });
+    }
+  } finally {
+    await refreshDayPhotos(dayId);
 
-  await renderPhotoSummary(dayId);
-
-  if (photoModal.classList.contains('open') && activeAlbumDayId === dayId) {
-    const refreshed = await loadPhotosByDay(dayId);
-    activeAlbum = refreshed;
-    activeAlbumIndex = 0;
-    renderPhotoModal();
+    if (photoModal.classList.contains('open') && activeAlbumDayId === dayId) {
+      const refreshed = await loadPhotosByDay(dayId);
+      activeAlbum = refreshed;
+      activeAlbumIndex = 0;
+      renderPhotoModal();
+    }
   }
 }

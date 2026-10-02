@@ -95,7 +95,7 @@ test('editing, storage, photos and self-contained archives survive the refactor'
   document.getElementById('editTripTitle').value = 'Discard this';
   document.getElementById('cancelTripBtn').click();
   assert.equal(document.title, editedTitle);
-  assert.equal(document.querySelector('#day-2027-06-02 .day-album-btn').disabled, true);
+  assert.equal(document.querySelector('#day-2027-06-02 .day-album-btn').disabled, false);
   assert.equal(document.querySelector('.edit-day-btn').classList.contains('secondary'), false);
   assert.equal(document.getElementById('todayHeading'), null);
   assert.equal(app.getNextTripDate(), '2027-06-04');
@@ -128,7 +128,7 @@ test('editing, storage, photos and self-contained archives survive the refactor'
   const photos = await app.loadPhotosByDay('2027-06-02');
   assert.equal(photos.length, 3);
   assert.equal(photos[0].caption, 'Album cover');
-  await app.renderPhotoSummary('2027-06-02');
+  await app.refreshDayPhotos('2027-06-02');
   const dayCard = document.getElementById('day-2027-06-02');
   const albumButton = dayCard.querySelector('.day-album-btn');
   if (dayCard.classList.contains('open')) dayCard.querySelector('.day-header').click();
@@ -584,5 +584,78 @@ test('overview panels and all days start collapsed and preserve edits while togg
   assert.equal(document.querySelector('.day-header').getAttribute('aria-expanded'), 'true');
   document.querySelector('.day-header').click();
   assert.equal(document.querySelectorAll('.day-card.open').length, 0);
+  assert.equal(live.errors.length, 0);
+});
+
+test('day header album handles empty albums, upload, captions and deleting the last photo', async (t) => {
+  const live = openDashboard(new IDBFactory());
+  t.after(() => live.window.close());
+  await tick();
+  const window = live.window;
+  const document = window.document;
+  const app = window.TripTest;
+  assert.equal(document.querySelector('.photo-tools'), null);
+  const dayId = '2027-06-01';
+  const button = document.querySelector(`#day-${dayId} .day-album-btn`);
+  button.focus();
+  button.click();
+  await tick();
+  assert.equal(document.getElementById('photoModal').classList.contains('open'), true);
+  assert.equal(document.getElementById('photoModalCounter').textContent, '0 photos');
+  assert.equal(document.getElementById('photoModalEmpty').classList.contains('hidden'), false);
+  assert.equal(document.getElementById('photoModalSaveBtn').disabled, true);
+  assert.equal(document.getElementById('photoModalDeleteBtn').disabled, true);
+  assert.equal(document.getElementById(`day-${dayId}`).classList.contains('open'), false);
+  // Stub image decoding and canvas, retaining real file input, FileReader and IndexedDB.
+  window.Image = class {
+    width = 12;
+    height = 8;
+    set src(value) {
+      window.setTimeout(() => this.onload(), 0);
+    }
+  };
+  window.HTMLCanvasElement.prototype.getContext = () => ({ drawImage() {} });
+  window.HTMLCanvasElement.prototype.toBlob = function (callback) {
+    callback(new window.Blob(['jpeg'], { type: 'image/jpeg' }));
+  };
+  const input = document.getElementById('photoModalUploadInput');
+  let pickerOpened = false;
+  input.click = () => {
+    pickerOpened = true;
+  };
+  document.getElementById('photoModalUploadBtn').click();
+  assert.equal(pickerOpened, true);
+  Object.defineProperty(input, 'files', {
+    configurable: true,
+    value: [new window.File(['image'], 'memory.jpg', { type: 'image/jpeg' })],
+  });
+  input.dispatchEvent(new window.Event('change', { bubbles: true }));
+  for (
+    let attempt = 0;
+    attempt < 20 && document.getElementById('photoModalUploadBtn').disabled;
+    attempt++
+  )
+    await tick();
+  const photos = await app.loadPhotosByDay(dayId);
+  assert.equal(photos.length, 1);
+  assert.equal(photos[0].name, 'memory.jpg');
+  assert.equal(document.getElementById('photoModalCounter').textContent, '1 / 1');
+  assert.match(document.getElementById('photoStatus').textContent, /Photos saved/);
+  assert.equal(document.getElementById('photoModalSaveBtn').disabled, false);
+  assert.equal(document.getElementById('photoModalEmpty').classList.contains('hidden'), true);
+  assert.ok(document.querySelector(`#day-${dayId} .day-cover img`));
+  document.getElementById('photoModalCaptionInput').value = 'Our first memory';
+  await app.saveActivePhotoCaption();
+  assert.equal((await app.loadPhotosByDay(dayId))[0].caption, 'Our first memory');
+  const payload = await app.buildArchivePayload();
+  assert.equal(payload.photos[0].caption, 'Our first memory');
+  await app.deleteActivePhoto();
+  assert.equal((await app.loadPhotosByDay(dayId)).length, 0);
+  assert.equal(document.getElementById('photoModalCounter').textContent, '0 photos');
+  assert.equal(document.getElementById('photoModal').classList.contains('open'), true);
+  assert.equal(document.querySelector(`#day-${dayId} .day-cover img`), null);
+  assert.equal(button.disabled, false);
+  app.closePhotoModal();
+  assert.equal(document.activeElement, button);
   assert.equal(live.errors.length, 0);
 });

@@ -9,6 +9,7 @@ import {
   saveActivePhotoCaption,
   showNextPhoto,
   showPrevPhoto,
+  uploadActiveAlbumFiles,
 } from './photos.js';
 import {
   addDayBtn,
@@ -28,9 +29,29 @@ import {
   tripDays,
 } from './state.js';
 import { cloneTripDays } from './utils.js';
-import { openDayCardByDate, refreshAllPhotoSummaries, renderDays, renderTripInfo } from './view.js';
+import { openDayCardByDate, refreshAllDayPhotos, renderDays, renderTripInfo } from './view.js';
 
 // Application startup, event wiring and optional browser-agent tools.
+
+const albumUploadButton = document.getElementById('photoModalUploadBtn');
+const albumUploadInput = document.getElementById('photoModalUploadInput');
+albumUploadButton.addEventListener('click', () => albumUploadInput.click());
+albumUploadInput.addEventListener('change', async () => {
+  if (!albumUploadInput.files.length) return;
+  albumUploadButton.disabled = true;
+  const status = document.getElementById('photoStatus');
+  status.textContent = 'Uploading photos…';
+  try {
+    await uploadActiveAlbumFiles(albumUploadInput.files);
+    status.textContent = 'Photos saved.';
+  } catch (error) {
+    status.textContent = 'Unable to save all photos. Please try again.';
+    console.error(error);
+  } finally {
+    albumUploadInput.value = '';
+    albumUploadButton.disabled = false;
+  }
+});
 
 photoModalClose.addEventListener('click', closePhotoModal);
 photoModalCloseBtn2.addEventListener('click', closePhotoModal);
@@ -49,7 +70,9 @@ document.addEventListener('keydown', (e) => {
   if (e.target !== photoModalCaptionInput && e.key === 'ArrowLeft') showPrevPhoto();
   if (e.target !== photoModalCaptionInput && e.key === 'ArrowRight') showNextPhoto();
   if (e.key === 'Tab') {
-    const focusables = Array.from(photoModal.querySelectorAll('button:not(:disabled), input'));
+    const focusables = Array.from(
+      photoModal.querySelectorAll('button:not(:disabled), input:not([type=file]):not(:disabled)'),
+    );
     const first = focusables[0],
       last = focusables[focusables.length - 1];
     if (e.shiftKey && document.activeElement === first) {
@@ -149,7 +172,7 @@ window.addEventListener('beforeunload', () => {
   initTravelEditor();
   renderDays();
   try {
-    await refreshAllPhotoSummaries();
+    await refreshAllDayPhotos();
   } catch (err) {
     document.getElementById('appStatus').textContent =
       'Photo storage is unavailable in this browser. Your itinerary is still available.';
