@@ -1,8 +1,9 @@
 import config from '../trip.config.js';
-import { loadEditableTripDays, loadTripInfo } from './storage.js';
+import { loadEditableTripDays, loadTripInfo, loadTravelInfo } from './storage.js';
 
 // Shared trip state and DOM references.
 
+export const tripTravel = loadTravelInfo();
 export const tripInfo = loadTripInfo();
 export const tripDays = loadEditableTripDays();
 

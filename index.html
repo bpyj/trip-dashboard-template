@@ -88,22 +88,29 @@
         </div>
       </header>
 
-      <section class="panel" aria-labelledby="todayHeading">
-        <h2 id="todayHeading">Today’s Plan</h2>
-        <div class="today-box">
-          <div class="today-date" id="todayDate"></div>
-          <div class="today-title" id="todayTitle"></div>
-          <div class="today-meta" id="todayMeta"></div>
-        </div>
-        <div class="legend">
-          <span class="chip easy">Easy day</span><span class="chip medium">Medium day</span
-          ><span class="chip long">Long day</span>
-        </div>
-      </section>
-
       <section class="panel" aria-labelledby="flightHeading">
-        <h2 id="flightHeading">Travel Information</h2>
+        <div class="panel-heading">
+          <h2 id="flightHeading">Travel Information</h2>
+          <button
+            class="btn"
+            id="editTravelBtn"
+            type="button"
+            data-editable-only
+            aria-expanded="false"
+            aria-controls="travelEditor"
+          >
+            Edit Travel
+          </button>
+        </div>
         <div class="grid" id="travelInfo"></div>
+        <form class="editor-card hidden" id="travelEditor" data-editable-only>
+          <div class="editor-grid" id="travelEditorFields"></div>
+          <div class="actions">
+            <button class="btn" type="submit">Save Travel</button>
+            <button class="btn secondary" id="cancelTravelBtn" type="button">Cancel</button>
+          </div>
+          <p id="travelEditorStatus" role="status"></p>
+        </form>
       </section>
 
       <main class="days" id="daysContainer" aria-label="Daily itinerary"></main>

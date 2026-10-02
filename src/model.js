@@ -94,3 +94,21 @@ export function validateTripInfo(info) {
     timeZone: info.timeZone.trim(),
   };
 }
+
+export function validateTravel(travel) {
+  if (!Array.isArray(travel)) throw new Error('Travel information must be a list of sections.');
+  return travel.map((item) => {
+    if (
+      !item ||
+      typeof item.title !== 'string' ||
+      !item.title.trim() ||
+      !Array.isArray(item.details) ||
+      item.details.some((detail) => typeof detail !== 'string')
+    )
+      throw new Error('Each travel section needs a title and a list of details.');
+    return {
+      title: item.title.trim(),
+      details: item.details.map((detail) => detail.trim()).filter(Boolean),
+    };
+  });
+}

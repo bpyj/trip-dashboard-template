@@ -1,11 +1,18 @@
 import config from '../trip.config.js';
 import { closeDayEditor, openDayEditor, saveDayEditor } from './days.js';
 import { openDayAlbum, renderPhotoSummary, saveFilesForDay } from './photos.js';
-import { daysContainer, tripDays, tripInfo, tripSubtitleEl, tripTitleEl } from './state.js';
+import {
+  daysContainer,
+  tripDays,
+  tripInfo,
+  tripTravel,
+  tripSubtitleEl,
+  tripTitleEl,
+} from './state.js';
 import { getDayNote, saveDayNoteFromTextarea } from './storage.js';
 import { buildList, escapeHtml, statusLabel, renderLinkButtons, formatDayDate } from './utils.js';
 
-// Configuration rendering, day cards and the destination clock.
+// Trip headings, travel information and day cards.
 
 export function renderTripInfo() {
   document.title = tripInfo.title;
@@ -30,14 +37,18 @@ export function renderTripInfo() {
         `<div class="summary-item"><div class="label">${escapeHtml(item.label)}</div><div class="value">${escapeHtml(item.value)}</div></div>`,
     )
     .join('');
+  renderTravelInfo();
+  document.querySelector('.footer-note').textContent = `Daily plan uses ${tripInfo.timeZone}.`;
+}
+
+export function renderTravelInfo() {
   const travel = document.getElementById('travelInfo');
-  travel.innerHTML = config.travel
+  travel.innerHTML = tripTravel
     .map(
       (item) =>
         `<div class="box"><h3>${escapeHtml(item.title)}</h3>${buildList(item.details)}</div>`,
     )
     .join('');
-  document.querySelector('.footer-note').textContent = `Daily plan uses ${tripInfo.timeZone}.`;
 }
 
 export function renderDays() {
@@ -261,37 +272,6 @@ export function openDayCardByDate(dateStr) {
   setTimeout(() => {
     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, 100);
-}
-
-export function updateToday(now = new Date(), openCard = true) {
-  const localYMD = new Intl.DateTimeFormat('en-CA', {
-    timeZone: tripInfo.timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(now);
-
-  const withinTrip = localYMD >= tripInfo.startDate && localYMD <= tripInfo.endDate;
-  const match = withinTrip && tripDays.find((day) => day.date === localYMD);
-  const todayDate = document.getElementById('todayDate');
-  const todayTitle = document.getElementById('todayTitle');
-  const todayMeta = document.getElementById('todayMeta');
-
-  if (match) {
-    const strictLine =
-      match.strictTimes && match.strictTimes.length ? ` Must watch: ${match.strictTimes[0]}` : '';
-
-    todayDate.textContent = `${match.label} · ${formatDayDate(match.date)}`;
-    todayTitle.textContent = match.title;
-    todayMeta.textContent = match.summary + strictLine;
-    if (openCard) openDayCardByDate(match.date);
-  } else {
-    todayDate.textContent = 'Trip Preview';
-    todayTitle.textContent = withinTrip
-      ? 'No daily plan for today yet'
-      : 'Not within trip dates right now';
-    todayMeta.textContent = `${formatDayDate(tripInfo.startDate)} – ${formatDayDate(tripInfo.endDate)}. Open a day below. Today’s Plan follows ${tripInfo.timeZone}.`;
-  }
 }
 
 export async function refreshAllPhotoSummaries() {

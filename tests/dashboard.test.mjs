@@ -97,10 +97,7 @@ test('editing, storage, photos and self-contained archives survive the refactor'
   assert.equal(document.title, editedTitle);
   assert.equal(document.querySelector('#day-2027-06-02 .day-album-btn').disabled, true);
   assert.equal(document.querySelector('.edit-day-btn').classList.contains('secondary'), false);
-  app.updateToday(new window.Date('2027-05-31T14:59:59Z'), false);
-  assert.equal(document.getElementById('todayDate').textContent, 'Trip Preview');
-  app.updateToday(new window.Date('2027-05-31T15:00:00Z'), false);
-  assert.match(document.getElementById('todayDate').textContent, /Day 1/);
+  assert.equal(document.getElementById('todayHeading'), null);
   assert.equal(app.getNextTripDate(), '2027-06-04');
 
   const hostile = 'A day </script><img src=x onerror=alert(1)> $&';
@@ -350,7 +347,7 @@ test('built standalone exports photos and notes locally without fetching CSS', a
   assert.equal(errors.length, 0, errors.map((error) => error.message).join('\n'));
 });
 
-test('trip date range and destination clock are editable, validated and archived', async (t) => {
+test('trip date range and destination time zone are editable, validated and archived', async (t) => {
   const database = new IDBFactory();
   const live = openDashboard(database, {
     [`trip:${config.id}:info:v1`]: JSON.stringify({
@@ -379,12 +376,6 @@ test('trip date range and destination clock are editable, validated and archived
   assert.match(document.querySelector('.summary-grid').textContent, /America\/New_York/);
   assert.equal(document.getElementById('notes-2027-06-02').value, 'Keep my unsaved note');
   assert.equal(app.tripDays[0].date, '2027-06-01');
-  app.updateToday(new live.window.Date('2027-06-01T03:59:59Z'), false);
-  assert.equal(document.getElementById('todayDate').textContent, 'Trip Preview');
-  app.updateToday(new live.window.Date('2027-06-01T04:00:00Z'), false);
-  assert.match(document.getElementById('todayDate').textContent, /Day 1/);
-  app.updateToday(new live.window.Date('2027-06-04T12:00:00Z'), false);
-  assert.equal(document.getElementById('todayTitle').textContent, 'No daily plan for today yet');
   document.getElementById('editTripBtn').click();
   document.getElementById('editTripEndDate').value = '2027-05-31';
   submit();
@@ -495,5 +486,66 @@ test('updated day sections preserve older entries through editing, reload and ex
     ['Another hotel', 'Check-in 3pm'],
   );
   assert.equal(reload.window.TripTest.tripDays[0].links.length, 2);
+  assert.equal(live.errors.length, 0);
+});
+
+test('travel information can be edited, cancelled, reloaded and exported', async (t) => {
+  const database = new IDBFactory();
+  const live = openDashboard(database);
+  t.after(() => live.window.close());
+  await tick();
+  const document = live.window.document;
+  const app = live.window.TripTest;
+  assert.equal(document.getElementById('todayHeading'), null);
+  assert.equal(
+    document.querySelector('.hero').nextElementSibling.getAttribute('aria-labelledby'),
+    'flightHeading',
+  );
+  document.getElementById('notes-2027-06-01').value = 'Unsaved day memory';
+  const title = 'Flights <img src=x onerror=alert(1)>';
+  const details = 'Depart 9am\nTransfer at airport <script>alert(1)</script>';
+  document.getElementById('editTravelBtn').click();
+  assert.equal(document.getElementById('travelEditor').classList.contains('hidden'), false);
+  document.getElementById('travel-title-0').value = ' ';
+  const submit = () =>
+    document
+      .getElementById('travelEditor')
+      .dispatchEvent(new live.window.Event('submit', { cancelable: true }));
+  submit();
+  assert.match(document.getElementById('travelEditorStatus').textContent, /needs a title/);
+  assert.equal(app.tripTravel[0].title, config.travel[0].title);
+  document.getElementById('travel-title-0').value = title;
+  document.getElementById('travel-details-0').value = details;
+  document.getElementById('travel-details-1').value = 'Sample hotel\nCheck-in 3pm';
+  submit();
+  assert.equal(document.querySelector('#travelInfo h3').textContent, title);
+  assert.equal(document.querySelectorAll('#travelInfo img,#travelInfo script').length, 0);
+  assert.equal(document.getElementById('notes-2027-06-01').value, 'Unsaved day memory');
+  assert.equal(document.getElementById('travelEditor').classList.contains('hidden'), true);
+  assert.equal(document.activeElement.id, 'editTravelBtn');
+  document.getElementById('editTravelBtn').click();
+  document.getElementById('travel-title-0').value = 'Discard this';
+  document.getElementById('cancelTravelBtn').click();
+  assert.equal(app.tripTravel[0].title, title);
+  const saved = Object.fromEntries(
+    Object.keys(live.window.localStorage).map((key) => [
+      key,
+      live.window.localStorage.getItem(key),
+    ]),
+  );
+  const reload = openDashboard(database, saved);
+  t.after(() => reload.window.close());
+  await tick();
+  assert.equal(reload.window.TripTest.tripTravel[0].title, title);
+  assert.equal(reload.window.TripTest.tripTravel[1].details[0], 'Sample hotel');
+  const payload = await app.buildArchivePayload();
+  assert.equal(payload.travel[0].title, title);
+  const archive = new JSDOM(app.buildArchiveHtml(payload, css));
+  t.after(() => archive.window.close());
+  const exported = archive.window.document;
+  assert.equal(exported.querySelector('#travelInfo h3').textContent, title);
+  assert.match(exported.getElementById('travelInfo').textContent, /Sample hotel/);
+  assert.equal(exported.querySelector('#travelEditor,#editTravelBtn,#todayHeading'), null);
+  assert.equal(exported.querySelectorAll('#travelInfo img,#travelInfo script').length, 0);
   assert.equal(live.errors.length, 0);
 });

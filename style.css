@@ -79,39 +79,6 @@ body {
   margin: 0 0 10px;
   font-size: 1.15rem;
 }
-.today-box {
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 14px;
-  background: #fbfdff;
-}
-.today-date {
-  color: var(--blue);
-  font-weight: 800;
-  margin-bottom: 6px;
-}
-.today-title {
-  font-size: 1.06rem;
-  font-weight: 800;
-  margin-bottom: 8px;
-}
-.today-meta {
-  color: var(--muted);
-  font-size: 0.95rem;
-}
-.legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-}
-.chip {
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 0.875rem;
-  font-weight: 700;
-  border: 1px solid transparent;
-}
 .easy {
   background: #ecfdf3;
   color: #166534;
@@ -926,4 +893,15 @@ select {
     padding: 8px;
     font-size: 0.8rem;
   }
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.panel-heading h2 {
+  margin: 0;
 }

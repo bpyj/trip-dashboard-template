@@ -1,17 +1,32 @@
 export const TRIP_DAYS_STORAGE_KEY = `trip:${config.id}:days:v1`;
 export const TRIP_INFO_STORAGE_KEY = `trip:${config.id}:info:v1`;
+export const TRAVEL_STORAGE_KEY = `trip:${config.id}:travel:v1`;
 export const DB_NAME = `trip:${config.id}:photos:v1`;
 export const DB_VERSION = 1;
 export const STORE_NAME = 'photos';
 export const NOTES_PREFIX = `trip:${config.id}:notes:v1:`;
 
-import { validateDays, validateTripInfo } from './model.js';
+import { validateDays, validateTripInfo, validateTravel } from './model.js';
 import config from '../trip.config.js';
 import { cloneTripDays } from './utils.js';
 
 // Local notes and transactional IndexedDB photo persistence.
 
 let dbPromise = null;
+
+export function loadTravelInfo() {
+  try {
+    const raw = localStorage.getItem(TRAVEL_STORAGE_KEY);
+    if (raw) return validateTravel(JSON.parse(raw));
+  } catch {
+    // Fall back to the configured travel information if saved data is invalid.
+  }
+  return validateTravel(config.travel);
+}
+
+export function saveTravelInfo(travel) {
+  localStorage.setItem(TRAVEL_STORAGE_KEY, JSON.stringify(validateTravel(travel)));
+}
 
 export function loadTripInfo() {
   const days = loadEditableTripDays();

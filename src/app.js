@@ -1,3 +1,4 @@
+import { initTravelEditor } from './travel.js';
 import { initTripEditor } from './trip.js';
 import { buildDayNotesPayload, exportHtmlArchive, revokeCurrentExportUrl } from './archive.js';
 import { addNewDay, getDayIndex } from './days.js';
@@ -26,13 +27,7 @@ import {
   tripDays,
 } from './state.js';
 import { cloneTripDays } from './utils.js';
-import {
-  openDayCardByDate,
-  refreshAllPhotoSummaries,
-  renderDays,
-  renderTripInfo,
-  updateToday,
-} from './view.js';
+import { openDayCardByDate, refreshAllPhotoSummaries, renderDays, renderTripInfo } from './view.js';
 
 // Application startup, event wiring and optional browser-agent tools.
 
@@ -135,11 +130,6 @@ if (addDayBtn) {
 }
 
 exportHtmlBtn.addEventListener('click', exportHtmlArchive);
-setInterval(() => updateToday(new Date(), false), 60000);
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) updateToday(new Date(), false);
-});
-
 clearExportLinkBtn.addEventListener('click', () => {
   revokeCurrentExportUrl();
   openExportLink.removeAttribute('href');
@@ -154,8 +144,8 @@ window.addEventListener('beforeunload', () => {
 (async function init() {
   renderTripInfo();
   initTripEditor();
+  initTravelEditor();
   renderDays();
-  updateToday();
   try {
     await refreshAllPhotoSummaries();
   } catch (err) {

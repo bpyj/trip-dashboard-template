@@ -1,7 +1,7 @@
 import { tripInfo } from './state.js';
 import { saveTripInfo } from './storage.js';
 import { validateTripInfo } from './model.js';
-import { renderTripInfo, updateToday } from './view.js';
+import { renderTripInfo } from './view.js';
 
 // Header edits use their own storage key, preserving existing days, notes and photos.
 export function initTripEditor() {
@@ -49,7 +49,6 @@ export function initTripEditor() {
       saveTripInfo(info);
       Object.assign(tripInfo, info);
       renderTripInfo();
-      updateToday(new Date(), false);
       close();
     } catch (error) {
       status.textContent = 'Unable to save trip settings. Please try again.';

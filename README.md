@@ -5,10 +5,10 @@ A reusable, mobile-friendly trip dashboard. Personalise one configuration file f
 ## Features
 
 - Edit Trip saves the title, subtitle, start/end dates and destination time zone in this browser.
-- Date range and time zone summary cards follow those settings; Today’s Plan uses the saved time zone. Changing the date range leaves existing daily plans and their notes/photos on their original dates.
+- Date range and time zone summary cards follow those settings. Changing the date range leaves existing daily plans and their notes/photos on their original dates.
 - A generic globe favicon can be replaced when personalising a trip.
 - Collapsible daily plans with an editor and an Add Day button.
-- Destination time zone for Today’s Plan.
+- Edit Travel changes travel section titles and details, saved in the browser and included in archives.
 - Day notes saved in the browser.
 - Photo uploads, compression, album browsing, captions and deletion.
 - A small album-cover thumbnail and Open Album button on each day card, available while collapsed.
@@ -70,7 +70,7 @@ A GitHub repository stores the source code. A live trip link is created by publi
 
 ## Photos, archives and sharing
 
-Uploaded photos live in IndexedDB on the device/browser where they were added. Edited trip headings, days and notes use localStorage. Each trip’s ID creates a separate storage namespace. These records do not sync to GitHub, another device or another person opening the live site.
+Uploaded photos live in IndexedDB on the device/browser where they were added. Edited trip headings, travel information, days and notes use localStorage. Each trip’s ID creates a separate storage namespace. These records do not sync to GitHub, another device or another person opening the live site.
 
 **Export HTML Archive** includes photos as embedded image data and writes the day content directly into one HTML file. Someone you share that file with can see the saved photos and notes without access to your phone or the live site. The archive is view-only and cannot be imported back into the editable app.
 
@@ -86,10 +86,11 @@ The template contains fictional sample plans and no personal booking references,
 | `src/model.js`             | Configuration and stored-day validation.                  |
 | `src/state.js`             | Current trip days and DOM references.                     |
 | `src/storage.js`           | Storage keys, notes and transactional photo persistence.  |
+| `src/travel.js`            | Travel information editor.                                |
 | `src/trip.js`              | Trip settings editor.                                     |
 | `src/days.js`              | Day editor and adding days.                               |
 | `src/photos.js`            | Compression, cover thumbnails and photo dialog.           |
-| `src/view.js`              | Rendering and Today’s Plan.                               |
+| `src/view.js`              | Rendering headings, travel information and daily plans.   |
 | `src/archive.js`           | Single-file, view-only archive export.                    |
 | `src/utils.js`             | Escaping, safe links and formatting.                      |
 | `src/app.js`               | Startup, event handlers and optional browser-agent tools. |
@@ -107,4 +108,4 @@ npm test
 npm run build
 ```
 
-Tests cover invalid configuration, destination midnight, storage isolation, day editing, unsaved notes, inert HTML-like input, photo CRUD/captions, reload persistence, archive content with scripts blocked, collapsed details and native album navigation without hash changes.
+Tests cover invalid configuration, storage isolation, day editing, unsaved notes, inert HTML-like input, photo CRUD/captions, reload persistence, archive content with scripts blocked, collapsed details and native album navigation without hash changes.

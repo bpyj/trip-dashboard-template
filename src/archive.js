@@ -7,6 +7,7 @@ import {
   tripSubtitleEl,
   tripTitleEl,
   tripInfo,
+  tripTravel,
 } from './state.js';
 import {
   formatDateTime,
@@ -47,6 +48,7 @@ export async function buildArchivePayload() {
       subtitle: tripSubtitleEl.textContent.trim(),
     },
     tripDays,
+    travel: tripTravel,
     dayNotes: buildDayNotesPayload(),
     photos: await loadAllPhotos(),
   };
@@ -399,7 +401,6 @@ export function buildArchiveHtml(payload, css) {
   banner.style.display = 'block';
   banner.textContent = `Saved archive · ${payload.tripDays.length} days · ${payload.photos.length} photos · View-only`;
   root.querySelector('body').classList.add('archive-view');
-  root.querySelector('#todayHeading').closest('section').remove();
   const days = root.querySelector('#daysContainer');
   const summary = document.createElement('details');
   summary.className = 'panel archive-info-panel';
@@ -413,7 +414,7 @@ export function buildArchiveHtml(payload, css) {
   saved.textContent = `Saved ${formatDateTime(payload.exportedAt)}`;
   summary.querySelector('.archive-info-body').appendChild(saved);
   const flightSection = root.querySelector('#flightHeading').closest('section');
-  flightSection.querySelector('#flightHeading').remove();
+  flightSection.querySelector('.panel-heading').remove();
   const flights = document.createElement('details');
   flights.className = 'panel archive-info-panel';
   flights.innerHTML =
