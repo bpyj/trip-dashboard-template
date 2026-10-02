@@ -318,6 +318,7 @@ body {
 .photo-modal-dialog {
   width: min(100%, 920px);
   max-height: 94vh;
+  max-height: 94dvh;
   background: #111827;
   color: white;
   border-radius: 18px;
@@ -415,6 +416,7 @@ body {
 }
 .photo-modal-actions {
   display: flex;
+  justify-content: center;
   flex-wrap: wrap;
   gap: 8px;
 }
@@ -888,4 +890,14 @@ select {
 .photo-modal-top {
   flex-wrap: wrap;
   gap: 10px;
+}
+
+@media (max-width: 480px) {
+  .photo-modal {
+    padding: 10px;
+  }
+  .photo-modal-actions .photo-modal-btn {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 0;
+  }
 }

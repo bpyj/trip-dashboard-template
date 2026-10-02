@@ -176,17 +176,6 @@
       <div class="photo-modal-dialog">
         <div class="photo-modal-top">
           <div class="photo-modal-counter" id="photoModalCounter"></div>
-          <button class="photo-modal-btn primary" id="photoModalUploadBtn" type="button">
-            Upload from Album
-          </button>
-          <input
-            class="photo-input"
-            id="photoModalUploadInput"
-            type="file"
-            accept="image/*"
-            multiple
-            aria-label="Upload album photos"
-          />
           <button
             class="photo-modal-close"
             type="button"
@@ -198,7 +187,7 @@
         </div>
         <div class="photo-modal-main">
           <p id="photoModalEmpty" class="album-empty hidden">
-            No photos yet. Tap Upload from Album to add photos to this day.
+            No photos yet. Tap Upload Photo to add photos to this day.
           </p>
           <img class="photo-modal-image" id="photoModalImage" alt="Trip photo" /><button
             class="photo-nav prev"
@@ -221,11 +210,24 @@
           />
           <div class="photo-modal-meta" id="photoModalMeta"></div>
           <div class="photo-modal-actions">
+            <button class="photo-modal-btn primary" id="photoModalUploadBtn" type="button">
+              Upload Photo
+            </button>
+            <input
+              class="photo-input"
+              id="photoModalUploadInput"
+              type="file"
+              accept="image/*"
+              multiple
+              aria-label="Upload album photos"
+            />
+            <button class="photo-modal-btn danger" type="button" id="photoModalDeleteBtn">
+              Delete Photo
+            </button>
             <button class="photo-modal-btn primary" type="button" id="photoModalSaveBtn">
-              Save Caption</button
-            ><button class="photo-modal-btn danger" type="button" id="photoModalDeleteBtn">
-              Delete Photo</button
-            ><button class="photo-modal-btn ghost" type="button" id="photoModalCloseBtn2">
+              Save Caption
+            </button>
+            <button class="photo-modal-btn ghost" type="button" id="photoModalCloseBtn2">
               Close Album
             </button>
           </div>
