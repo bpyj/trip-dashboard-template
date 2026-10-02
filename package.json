@@ -1,0 +1,19 @@
+{
+  "name": "trip-dashboard-template",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Reusable static trip dashboard with local notes, photo albums and portable HTML archives",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "format": "prettier --write src trip.config.js index.html style.css scripts tests README.md",
+    "check": "prettier --check src trip.config.js index.html style.css scripts tests README.md"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12",
+    "fake-indexeddb": "6.2.4",
+    "jsdom": "26.1.0",
+    "prettier": "3.6.2"
+  }
+}
