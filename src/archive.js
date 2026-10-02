@@ -171,6 +171,166 @@ export function renderArchiveAlbum(day, photos) {
 }
 
 export function enhanceArchiveAlbums() {
+  // Enhance the static album only when scripts run. The native album remains
+  // complete in file previews that block scripts, storage or network access.
+  const modal = document.createElement('div');
+  modal.id = 'archivePhotoModal';
+  modal.className = 'photo-modal archive-photo-modal';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-label', 'Trip photo album');
+  modal.setAttribute('aria-hidden', 'true');
+  modal.innerHTML = `
+    <div class="photo-modal-dialog">
+      <div class="photo-modal-top archive-modal-controls">
+        <button type="button" class="photo-modal-close" data-action="previous">Previous Photo</button>
+        <span class="photo-modal-counter" aria-live="polite"></span>
+        <button type="button" class="photo-modal-close" data-action="next">Next Photo</button>
+        <button type="button" class="photo-modal-close" data-action="close">Close</button>
+      </div>
+      <div class="photo-modal-main"><img class="photo-modal-image" alt="Trip photo"></div>
+      <div class="photo-modal-bottom"><div class="photo-modal-meta"></div></div>
+    </div>`;
+  document.body.appendChild(modal);
+  const image = modal.querySelector('img');
+  const caption = modal.querySelector('.photo-modal-meta');
+  const counter = modal.querySelector('.photo-modal-counter');
+  const previous = modal.querySelector('[data-action="previous"]');
+  const next = modal.querySelector('[data-action="next"]');
+  const closeButton = modal.querySelector('[data-action="close"]');
+  const page = document.querySelector('.wrap');
+  let photos = [];
+  let index = 0;
+  let returnFocus = null;
+  let scrollPosition = 0;
+  let savedBodyStyle = null;
+  let wasInert = false;
+
+  function render() {
+    const photo = photos[index];
+    image.src = photo.querySelector('img').getAttribute('src');
+    image.alt = photo.querySelector('img').alt;
+    caption.textContent = photo.querySelector('figcaption').textContent;
+    counter.textContent = `${index + 1} / ${photos.length}`;
+    previous.disabled = next.disabled = photos.length < 2;
+  }
+
+  function navigate(direction) {
+    if (!photos.length) return;
+    index = (index + direction + photos.length) % photos.length;
+    render();
+  }
+
+  function close() {
+    if (!modal.classList.contains('open')) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    Object.assign(document.body.style, savedBodyStyle);
+    if (page) page.inert = wasInert;
+    window.scrollTo({ top: scrollPosition, left: 0, behavior: 'instant' });
+    returnFocus?.focus({ preventScroll: true });
+    photos = [];
+    image.removeAttribute('src');
+  }
+
+  document.querySelectorAll('.archive-album').forEach((album) => {
+    const summary = album.querySelector('summary');
+    summary.addEventListener('click', (event) => {
+      event.preventDefault();
+      photos = Array.from(album.querySelectorAll('figure'));
+      if (!photos.length) return;
+      const choices = Array.from(album.querySelectorAll('.archive-photo-select'));
+      index = Math.max(
+        0,
+        choices.findIndex((choice) => choice.checked),
+      );
+      returnFocus = summary;
+      scrollPosition = window.scrollY;
+      savedBodyStyle = Object.fromEntries(
+        ['position', 'top', 'width', 'overflow'].map((property) => [
+          property,
+          document.body.style[property],
+        ]),
+      );
+      Object.assign(document.body.style, {
+        position: 'fixed',
+        top: `-${scrollPosition}px`,
+        width: '100%',
+        overflow: 'hidden',
+      });
+      if (page) {
+        wasInert = page.inert;
+        page.inert = true;
+      }
+      render();
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden', 'false');
+      closeButton.focus({ preventScroll: true });
+    });
+  });
+  previous.addEventListener('click', () => navigate(-1));
+  next.addEventListener('click', () => navigate(1));
+  closeButton.addEventListener('click', close);
+  modal.addEventListener('click', (event) => {
+    if (event.target === modal) close();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (!modal.classList.contains('open')) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      close();
+    }
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      navigate(-1);
+    }
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      navigate(1);
+    }
+    if (event.key === 'Tab') {
+      const buttons = Array.from(modal.querySelectorAll('button:not(:disabled)'));
+      const first = buttons[0],
+        last = buttons.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus({ preventScroll: true });
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus({ preventScroll: true });
+      }
+    }
+  });
+  let swipeStart = null;
+  image.addEventListener(
+    'touchstart',
+    (event) => {
+      swipeStart =
+        event.touches.length === 1
+          ? { x: event.touches[0].clientX, y: event.touches[0].clientY }
+          : null;
+    },
+    { passive: true },
+  );
+  image.addEventListener(
+    'touchmove',
+    (event) => {
+      if (event.touches.length !== 1) swipeStart = null;
+    },
+    { passive: true },
+  );
+  image.addEventListener(
+    'touchend',
+    (event) => {
+      if (!swipeStart || !event.changedTouches.length) return;
+      const dx = event.changedTouches[0].clientX - swipeStart.x;
+      const dy = event.changedTouches[0].clientY - swipeStart.y;
+      swipeStart = null;
+      if (Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy)) navigate(dx < 0 ? 1 : -1);
+    },
+    { passive: true },
+  );
+
   // Optional swipe and keyboard support; native radio labels work without scripts.
   document.querySelectorAll('.archive-album-track').forEach((track) => {
     let start = null;

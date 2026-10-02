@@ -12,7 +12,7 @@ A reusable, mobile-friendly trip dashboard. Personalise one configuration file f
 - A single HTML archive containing the itinerary, notes, captions and photos.
 - Archive days start directly below the compact title, with all details collapsed.
 - Separate day-details and album controls. Archive Previous/Next buttons sit above the photo and do not use scroll-jumping links.
-- Native archive controls work in viewers that block JavaScript. Swipe and keyboard enhancements are available when scripts run.
+- Archives open the same dark photo overlay when scripts run, with Previous/Next above the photo, swipe, keyboard navigation and a Close button. Native inline albums remain available in viewers that block scripts.
 
 ## Personalise a trip
 

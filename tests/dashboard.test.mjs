@@ -149,6 +149,73 @@ test('editing, storage, photos and self-contained archives survive the refactor'
   assert.equal(preview.window.location.hash, '');
   assert.equal(archive.querySelectorAll('.day-title img').length, 0);
 
+  // Script-enabled archives open a read-only overlay without moving the page.
+  const scrollCalls = [];
+  const scripted = new JSDOM(html, {
+    url: 'file:///trip-archive.html',
+    runScripts: 'dangerously',
+    beforeParse(window) {
+      Object.defineProperty(window, 'scrollY', { value: 240 });
+      window.scrollTo = (options) => scrollCalls.push(options.top);
+      window.fetch = () => {
+        throw new Error('Archive must not use the network.');
+      };
+      window.indexedDB = {
+        open() {
+          throw new Error('Archive must not access storage.');
+        },
+      };
+    },
+  });
+  t.after(() => scripted.window.close());
+  const sd = scripted.window.document;
+  const trigger = sd.querySelector('.archive-album > summary');
+  const overlay = sd.getElementById('archivePhotoModal');
+  trigger.click();
+  assert.equal(overlay.classList.contains('open'), true);
+  assert.equal(trigger.parentElement.open, false);
+  assert.equal(sd.querySelector('.wrap').inert, true);
+  assert.equal(sd.body.style.position, 'fixed');
+  assert.equal(sd.body.style.top, '-240px');
+  assert.equal(overlay.querySelector('.photo-modal-counter').textContent, '1 / 3');
+  assert.equal(
+    overlay
+      .querySelector('.photo-modal-dialog')
+      .firstElementChild.classList.contains('archive-modal-controls'),
+    true,
+  );
+  overlay.querySelector('[data-action="next"]').click();
+  assert.equal(overlay.querySelector('.photo-modal-counter').textContent, '2 / 3');
+  overlay.querySelector('[data-action="previous"]').click();
+  assert.equal(overlay.querySelector('.photo-modal-counter').textContent, '1 / 3');
+  sd.dispatchEvent(
+    new scripted.window.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }),
+  );
+  assert.equal(overlay.querySelector('.photo-modal-counter').textContent, '3 / 3');
+  const overlayImage = overlay.querySelector('img');
+  const touchStart = new scripted.window.Event('touchstart');
+  Object.defineProperty(touchStart, 'touches', { value: [{ clientX: 200, clientY: 200 }] });
+  overlayImage.dispatchEvent(touchStart);
+  const touchEnd = new scripted.window.Event('touchend');
+  Object.defineProperty(touchEnd, 'changedTouches', { value: [{ clientX: 100, clientY: 200 }] });
+  overlayImage.dispatchEvent(touchEnd);
+  assert.equal(overlay.querySelector('.photo-modal-counter').textContent, '1 / 3');
+  assert.equal(scripted.window.location.hash, '');
+  assert.equal(scrollCalls.length, 0);
+  const close = overlay.querySelector('[data-action="close"]');
+  close.focus();
+  close.dispatchEvent(
+    new scripted.window.KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }),
+  );
+  assert.equal(sd.activeElement, overlay.querySelector('[data-action="previous"]'));
+  sd.dispatchEvent(new scripted.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  assert.equal(overlay.classList.contains('open'), false);
+  assert.equal(sd.querySelector('.wrap').inert, undefined);
+  assert.equal(sd.body.style.position, '');
+  assert.deepEqual(scrollCalls, [240]);
+  assert.equal(sd.activeElement, trigger);
+  assert.equal(overlay.querySelectorAll('input,textarea').length, 0);
+
   const saved = Object.fromEntries(
     Object.keys(window.localStorage).map((key) => [key, window.localStorage.getItem(key)]),
   );
