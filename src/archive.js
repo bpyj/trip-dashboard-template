@@ -16,14 +16,7 @@ import {
   normalizePhotoRecord,
   saveEditableDayNote,
 } from './storage.js';
-import {
-  buildList,
-  escapeHtml,
-  slugifyFileName,
-  statusLabel,
-  formatDayDate,
-  renderLinkButtons,
-} from './utils.js';
+import { escapeHtml, slugifyFileName, formatBytes } from './utils.js';
 
 // Portable HTML archives with native, independently collapsible albums.
 
@@ -100,38 +93,25 @@ export function renderArchiveDay(day, payload) {
     .filter((photo) => photo.dayId === day.date)
     .map(normalizePhotoRecord)
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  const section = (title, content, className = '') =>
-    `<div class="box ${className}"><h3>${title}</h3>${content}</div>`;
-  const note = payload.dayNotes[day.date] || '';
+  // Reuse the rendered template content so archive sections cannot drift in style.
+  const source = document.getElementById(`day-${day.date}`);
+  const content = source.querySelector('.day-content').cloneNode(true);
+  content.querySelector('.day-editor')?.remove();
+  const notes = content.querySelector('.notes-card');
+  notes
+    .querySelectorAll('label, .notes-help, .actions, .note-save-status')
+    .forEach((el) => el.remove());
+  const note = document.createElement('div');
+  note.className = 'notes-textarea archive-note';
+  note.textContent = payload.dayNotes[day.date] || 'No notes saved.';
+  notes.querySelector('textarea').replaceWith(note);
+  const header = source.querySelector('.day-header').cloneNode(true);
+  const summary = document.createElement('summary');
+  summary.className = header.className;
+  summary.innerHTML = header.innerHTML;
   return `<article class="day-card archive-day-card" id="day-${escapeHtml(day.date)}">
-    <div class="day-header">
-      <div class="day-header-left">
-        <div class="day-kicker-row"><span class="day-kicker">${escapeHtml(day.label)}</span><span class="day-date">${formatDayDate(day.date)}</span></div>
-        <div class="day-title">${escapeHtml(day.title)}</div>
-        <div class="day-summary">${escapeHtml(day.summary)}</div>
-      </div>
-      <div class="day-header-right"><div class="day-cover">${
-        photos.length
-          ? `<img src="${escapeHtml(photos[0].dataUrl)}" alt="First photo in ${escapeHtml(day.label)} album">`
-          : '<span>No photo</span>'
-      }</div></div>
-    </div>
-    <details class="archive-day-details">
-      <summary class="archive-details-toggle">Day Details<span class="toggle-icon" aria-hidden="true">+</span></summary>
-      <div class="day-content">
-      <div class="status-row">${statusLabel(day.status)}</div>
-      <div class="grid">
-        ${section('Strict Times', day.strictTimes?.length ? buildList(day.strictTimes, 'strict-list') : '<p>No hard timing saved</p>', 'strict-box')}
-        ${section('Itinerary', buildList(day.itinerary))}
-        ${section('Transport', buildList(day.transport))}
-        ${section('Accommodation', buildList(day.accommodation))}
-        ${section('Bookings / Notes', buildList([...(day.bookings || []), ...(day.notes || [])]))}
-        ${section('Links', renderLinkButtons(day.links))}
-      </div>
-      <div class="notes-tools"><div class="notes-card"><h3>Day Notes</h3><div class="archive-note">${escapeHtml(note || 'No notes saved.')}</div></div></div>
-      </div>
-    </details>
-    ${photos.length ? renderArchiveAlbum(day, photos) : '<div class="archive-empty-album">No photos saved for this day.</div>'}
+    <details class="archive-day-details">${summary.outerHTML}${content.outerHTML}</details>
+    ${renderArchiveAlbum(day, photos)}
   </article>`;
 }
 
@@ -142,13 +122,12 @@ export function renderArchiveAlbum(day, photos) {
   });
   const photoId = (index) => `archive-photo-${day.date}-${index}`;
   return `<details class="archive-album">
-    <summary class="archive-album-toggle">
-      <span class="day-cover"><img src="${escapeHtml(photos[0].dataUrl)}" alt="Album cover for ${escapeHtml(day.label)}"></span>
-      <span class="archive-album-label"><strong>Open Album · ${photos.length} photo${photos.length === 1 ? '' : 's'}</strong><span>View photos for ${escapeHtml(day.label)}</span></span>
-      <span class="toggle-icon" aria-hidden="true">+</span>
+    <summary class="day-album-actions">
+      <span class="day-cover">${photos.length ? `<img src="${escapeHtml(photos[0].dataUrl)}" alt="Album cover for ${escapeHtml(day.label)}">` : '<span>No photo</span>'}</span>
+      <span class="btn secondary day-album-btn">Open Album</span>
     </summary>
     <div class="archive-album-body">
-      <p class="backup-note">Use Previous/Next to browse. Tap Open Album again to close.</p>
+      ${photos.length ? '' : '<p class="album-empty">No photos saved for this day.</p>'}
       <div class="archive-album-track" aria-label="Photo album for ${escapeHtml(day.label)}">
         ${photos
           .map(
@@ -163,7 +142,7 @@ export function renderArchiveAlbum(day, photos) {
             ${photos.length > 1 ? `<label class="btn secondary" role="button" tabindex="0" for="${escapeHtml(photoId((index + 1) % photos.length))}">Next Photo</label>` : ''}
           </nav>
           <img src="${escapeHtml(photo.dataUrl)}" alt="${escapeHtml(photo.caption || photo.name || 'Trip photo')}">
-          <figcaption>${escapeHtml(photo.caption || photo.name || 'Trip photo')}</figcaption>
+          <figcaption data-meta="${escapeHtml(`${formatDateTime(photo.createdAt)} · Saved ${formatBytes(photo.savedSize || 0)}${photo.wasCompressed ? ` · Compressed from ${formatBytes(photo.originalSize || 0)}` : ''}`)}">${escapeHtml(photo.caption || '')}</figcaption>
         </figure>`,
           )
           .join('')}
@@ -175,27 +154,11 @@ export function renderArchiveAlbum(day, photos) {
 export function enhanceArchiveAlbums() {
   // Enhance the static album only when scripts run. The native album remains
   // complete in file previews that block scripts, storage or network access.
-  const modal = document.createElement('div');
-  modal.id = 'archivePhotoModal';
-  modal.className = 'photo-modal archive-photo-modal';
-  modal.setAttribute('role', 'dialog');
-  modal.setAttribute('aria-modal', 'true');
-  modal.setAttribute('aria-label', 'Trip photo album');
-  modal.setAttribute('aria-hidden', 'true');
-  modal.innerHTML = `
-    <div class="photo-modal-dialog">
-      <div class="photo-modal-top archive-modal-controls">
-        <button type="button" class="photo-modal-close" data-action="previous">Previous Photo</button>
-        <span class="photo-modal-counter" aria-live="polite"></span>
-        <button type="button" class="photo-modal-close" data-action="next">Next Photo</button>
-        <button type="button" class="photo-modal-close" data-action="close">Close</button>
-      </div>
-      <div class="photo-modal-main"><img class="photo-modal-image" alt="Trip photo"></div>
-      <div class="photo-modal-bottom"><div class="photo-modal-meta"></div></div>
-    </div>`;
-  document.body.appendChild(modal);
-  const image = modal.querySelector('img');
-  const caption = modal.querySelector('.photo-modal-meta');
+  const modal = document.getElementById('archivePhotoModal');
+  const image = modal.querySelector('.photo-modal-image');
+  const empty = modal.querySelector('.album-empty');
+  const caption = modal.querySelector('.photo-modal-caption-input');
+  const metadata = modal.querySelector('.photo-modal-meta');
   const counter = modal.querySelector('.photo-modal-counter');
   const previous = modal.querySelector('[data-action="previous"]');
   const next = modal.querySelector('[data-action="next"]');
@@ -210,11 +173,20 @@ export function enhanceArchiveAlbums() {
 
   function render() {
     const photo = photos[index];
+    empty.classList.toggle('hidden', !!photo);
+    image.classList.toggle('hidden', !photo);
+    caption.classList.toggle('hidden', !photo);
+    counter.textContent = photo ? `${index + 1} / ${photos.length}` : '0 photos';
+    previous.disabled = next.disabled = photos.length < 2;
+    if (!photo) {
+      image.removeAttribute('src');
+      caption.textContent = metadata.textContent = '';
+      return;
+    }
     image.src = photo.querySelector('img').getAttribute('src');
     image.alt = photo.querySelector('img').alt;
-    caption.textContent = photo.querySelector('figcaption').textContent;
-    counter.textContent = `${index + 1} / ${photos.length}`;
-    previous.disabled = next.disabled = photos.length < 2;
+    caption.textContent = photo.querySelector('figcaption').textContent || 'No caption';
+    metadata.textContent = photo.querySelector('figcaption').dataset.meta;
   }
 
   function navigate(direction) {
@@ -235,12 +207,77 @@ export function enhanceArchiveAlbums() {
     image.removeAttribute('src');
   }
 
+  document.querySelectorAll('.archive-overview').forEach((details) => {
+    const isTrip = details.classList.contains('archive-trip-overview');
+    const row = document.createElement('div');
+    row.className = isTrip ? 'trip-title-row' : 'panel-heading';
+    const heading = document.createElement(isTrip ? 'h1' : 'h2');
+    if (isTrip) heading.className = 'title';
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'heading-toggle';
+    button.innerHTML = details.querySelector('summary').innerHTML;
+    button.setAttribute('aria-expanded', 'false');
+    const body = details.querySelector('.archive-info-body');
+    body.classList.remove('archive-info-body');
+    body.classList.add('hidden');
+    button.setAttribute('aria-controls', body.id);
+    heading.append(button);
+    row.append(heading);
+    details.replaceWith(row);
+    if (isTrip) document.getElementById('tripSubtitle').after(body);
+    else row.after(body);
+    button.addEventListener('click', () => {
+      body.classList.toggle('hidden');
+      button.setAttribute('aria-expanded', String(!body.classList.contains('hidden')));
+    });
+  });
+
+  // Restore the template's exact header structure when scripts are available.
+  document.querySelectorAll('.archive-day-card').forEach((card) => {
+    const details = card.querySelector('.archive-day-details');
+    const button = document.createElement('button');
+    button.className = 'day-header';
+    button.type = 'button';
+    button.innerHTML = details.querySelector('summary').innerHTML;
+    button.setAttribute('aria-expanded', 'false');
+    const content = details.querySelector('.day-content');
+    button.setAttribute('aria-controls', content.id);
+    const row = document.createElement('div');
+    row.className = 'day-heading-row';
+    const album = card.querySelector('.archive-album');
+    const actions = document.createElement('div');
+    actions.className = 'day-album-actions';
+    actions.innerHTML = album.querySelector('summary').innerHTML;
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'btn secondary day-album-btn';
+    trigger.textContent = 'Open Album';
+    trigger.setAttribute(
+      'aria-label',
+      `Open photo album for ${card.querySelector('.day-kicker').textContent}`,
+    );
+    actions.querySelector('.day-album-btn').replaceWith(trigger);
+    album.querySelector('summary').remove();
+    album.hidden = true;
+    row.append(button, actions);
+    card.prepend(row);
+    card.append(content);
+    details.remove();
+    card.classList.remove('archive-day-card');
+    card._albumTrigger = trigger;
+    button.addEventListener('click', () => {
+      card.classList.toggle('open');
+      button.setAttribute('aria-expanded', String(card.classList.contains('open')));
+    });
+  });
+
   document.querySelectorAll('.archive-album').forEach((album) => {
-    const summary = album.querySelector('summary');
+    const summary = album.closest('.day-card')._albumTrigger;
     summary.addEventListener('click', (event) => {
       event.preventDefault();
       photos = Array.from(album.querySelectorAll('figure'));
-      if (!photos.length) return;
+
       const choices = Array.from(album.querySelectorAll('.archive-photo-select'));
       index = Math.max(
         0,
@@ -272,7 +309,9 @@ export function enhanceArchiveAlbums() {
   });
   previous.addEventListener('click', () => navigate(-1));
   next.addEventListener('click', () => navigate(1));
-  closeButton.addEventListener('click', close);
+  modal
+    .querySelectorAll('[data-action="close"]')
+    .forEach((button) => button.addEventListener('click', close));
   modal.addEventListener('click', (event) => {
     if (event.target === modal) close();
   });
@@ -385,47 +424,65 @@ export function buildArchiveHtml(payload, css) {
   root.querySelector('#daysContainer').innerHTML = payload.tripDays
     .map((day) => renderArchiveDay(day, payload))
     .join('');
-  root.querySelector('#tripOverviewToggle').replaceWith(root.querySelector('#tripTitle'));
   root.querySelectorAll('[data-editable-only]').forEach((element) => element.remove());
   root.querySelectorAll('script').forEach((script) => script.remove());
   const enhancement = document.createElement('script');
   enhancement.textContent = `(${enhanceArchiveAlbums.toString()})();`;
   root.querySelector('body').appendChild(enhancement);
   root.querySelector('.backup-panel')?.remove();
-  root.querySelector('#photoModal')?.remove();
+  const modal = root.querySelector('#photoModal');
+  modal.id = 'archivePhotoModal';
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+  modal
+    .querySelectorAll(
+      '#photoModalUploadBtn, #photoModalUploadInput, #photoModalDeleteBtn, #photoModalSaveBtn, #photoStatus, label',
+    )
+    .forEach((el) => el.remove());
+  const caption = document.createElement('div');
+  caption.className = 'photo-modal-caption-input';
+  modal.querySelector('#photoModalCaptionInput').replaceWith(caption);
+  modal.querySelector('#photoModalEmpty').textContent = 'No photos saved for this day.';
+  const actions = {
+    photoPrevBtn: 'previous',
+    photoNextBtn: 'next',
+    photoModalClose: 'close',
+    photoModalCloseBtn2: 'close',
+  };
+  for (const [id, action] of Object.entries(actions))
+    modal.querySelector(`#${id}`).dataset.action = action;
+  modal.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
   root.querySelector('body').style.overflow = '';
   const style = document.createElement('style');
   style.id = 'appStyles';
   style.textContent = css;
   root.querySelector('#appStyles').replaceWith(style);
-  const banner = root.querySelector('#archiveBanner');
-  banner.style.display = 'block';
-  banner.textContent = `Saved archive · ${payload.tripDays.length} days · ${payload.photos.length} photos · View-only`;
+  root.querySelector('#archiveBanner').remove();
   root.querySelector('body').classList.add('archive-view');
-  const days = root.querySelector('#daysContainer');
-  const summary = document.createElement('details');
-  summary.className = 'panel archive-info-panel';
-  summary.innerHTML =
-    '<summary class="archive-info-toggle">Trip Summary<span class="toggle-icon" aria-hidden="true">+</span></summary><div class="archive-info-body"></div>';
-  summary
-    .querySelector('.archive-info-body')
-    .appendChild(root.querySelector('.hero .summary-grid'));
-  root.querySelector('#tripOverviewBody').remove();
-  const saved = document.createElement('p');
-  saved.className = 'backup-note';
-  saved.textContent = `Saved ${formatDateTime(payload.exportedAt)}`;
-  summary.querySelector('.archive-info-body').appendChild(saved);
-  const flightSection = root.querySelector('#flightHeading').closest('section');
-  flightSection.querySelector('.panel-heading').remove();
-  const flights = document.createElement('details');
-  flights.className = 'panel archive-info-panel';
-  flights.innerHTML =
-    '<summary class="archive-info-toggle">Travel Information<span class="toggle-icon" aria-hidden="true">+</span></summary><div class="archive-info-body"></div>';
-  flights
-    .querySelector('.archive-info-body')
-    .appendChild(flightSection.querySelector('#travelInfo'));
-  flightSection.remove();
-  days.after(summary, flights);
+  // Native details retain the same headings and order while working offline,
+  // including in file viewers that do not execute the enhancement script.
+  for (const prefix of ['trip', 'travel']) {
+    const toggle = root.querySelector(`#${prefix}OverviewToggle`);
+    const body = root.querySelector(`#${prefix}OverviewBody`);
+    const details = document.createElement('details');
+    details.className = `archive-overview archive-${prefix}-overview`;
+    const summary = document.createElement('summary');
+    summary.className = 'heading-toggle';
+    summary.innerHTML = toggle.innerHTML;
+    body.classList.remove('hidden');
+    body.classList.add('archive-info-body');
+    if (prefix === 'trip') {
+      const heading = root.querySelector('.trip-title-row');
+      summary.classList.add('title');
+      heading.replaceWith(details);
+      details.append(summary, body);
+    } else {
+      const heading = root.querySelector('.panel-heading');
+      summary.classList.add('archive-travel-heading');
+      heading.replaceWith(details);
+      details.append(summary, body);
+    }
+  }
   root.querySelectorAll('details').forEach((details) => details.removeAttribute('open'));
   root.querySelector('.footer-note').textContent =
     'Saved trip record · Photos and notes are included in this file.';
