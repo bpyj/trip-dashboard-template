@@ -272,7 +272,7 @@ export function buildArchiveHtml(payload, css) {
     .map((day) => renderArchiveDay(day, payload))
     .join('');
   root.querySelectorAll('[data-editable-only]').forEach((element) => element.remove());
-  root.querySelectorAll('script').forEach((script) => script.remove());
+  root.querySelectorAll('script, .floating-collapse').forEach((element) => element.remove());
   const enhancement = document.createElement('script');
   enhancement.textContent = `(${enhanceArchiveAlbums.toString()})(${createAlbumDialog.toString()}, ${createDisclosure.toString()});`;
   root.querySelector('body').appendChild(enhancement);
