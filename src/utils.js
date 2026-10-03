@@ -69,3 +69,8 @@ export function formatDayDate(dateStr) {
     timeZone: 'UTC',
   }).format(new Date(dateStr + 'T00:00:00Z'));
 }
+
+// A deleted or unset cover falls back to the first available album photo.
+export function chooseCoverPhoto(photos, photoId) {
+  return photos.find((photo) => photo.id === photoId) || photos[0] || null;
+}
