@@ -96,9 +96,6 @@
           </form>
           <div class="summary-grid"></div>
         </div>
-        <div id="archiveBanner" class="archive-banner" style="display: none">
-          Saved archive · Itinerary, notes and photos are view-only.
-        </div>
       </header>
 
       <section class="panel" aria-labelledby="flightHeading">
@@ -141,7 +138,7 @@
 
       <main class="days" id="daysContainer" aria-label="Daily itinerary"></main>
 
-      <section class="panel backup-panel" aria-labelledby="backupHeading">
+      <section class="panel backup-panel" aria-labelledby="backupHeading" data-editable-only>
         <h2 id="backupHeading">Save a Trip Record</h2>
         <div class="actions">
           <button class="btn" id="exportHtmlBtn" type="button">Export HTML Archive</button
@@ -180,6 +177,7 @@
             class="photo-modal-btn ghost"
             type="button"
             id="photoModalThumbnailBtn"
+            data-editable-only
             aria-pressed="false"
           >
             Set as Thumbnail
@@ -193,15 +191,23 @@
             class="photo-nav prev"
             type="button"
             id="photoPrevBtn"
+            data-action="previous"
             aria-label="Previous photo"
           >
             ‹</button
-          ><button class="photo-nav next" type="button" id="photoNextBtn" aria-label="Next photo">
+          ><button
+            class="photo-nav next"
+            type="button"
+            id="photoNextBtn"
+            data-action="next"
+            aria-label="Next photo"
+          >
             ›
           </button>
         </div>
         <div class="photo-modal-bottom">
-          <label class="sr-only" for="photoModalCaptionInput">Photo caption</label
+          <label class="sr-only" data-editable-only for="photoModalCaptionInput"
+            >Photo caption</label
           ><input
             class="photo-modal-caption-input"
             id="photoModalCaptionInput"
@@ -210,28 +216,49 @@
           />
           <div class="photo-modal-meta" id="photoModalMeta"></div>
           <div class="photo-modal-actions">
-            <button class="photo-modal-btn primary" id="photoModalUploadBtn" type="button">
+            <button
+              class="photo-modal-btn primary"
+              id="photoModalUploadBtn"
+              data-editable-only
+              type="button"
+            >
               Upload Photo
             </button>
             <input
               class="photo-input"
               id="photoModalUploadInput"
+              data-editable-only
               type="file"
               accept="image/*"
               multiple
               aria-label="Upload album photos"
             />
-            <button class="photo-modal-btn danger" type="button" id="photoModalDeleteBtn">
+            <button
+              class="photo-modal-btn danger"
+              type="button"
+              id="photoModalDeleteBtn"
+              data-editable-only
+            >
               Delete Photo
             </button>
-            <button class="photo-modal-btn primary" type="button" id="photoModalSaveBtn">
+            <button
+              class="photo-modal-btn primary"
+              type="button"
+              id="photoModalSaveBtn"
+              data-editable-only
+            >
               Save Caption
             </button>
-            <button class="photo-modal-btn ghost" type="button" id="photoModalClose">
+            <button
+              class="photo-modal-btn ghost"
+              type="button"
+              id="photoModalClose"
+              data-action="close"
+            >
               Close Album
             </button>
           </div>
-          <div id="photoStatus" role="status"></div>
+          <div id="photoStatus" data-editable-only role="status"></div>
         </div>
       </div>
     </div>
