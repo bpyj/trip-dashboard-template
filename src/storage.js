@@ -7,7 +7,7 @@ export const STORE_NAME = 'photos';
 export const COVERS_PREFIX = `trip:${config.id}:cover:v1:`;
 export const NOTES_PREFIX = `trip:${config.id}:notes:v1:`;
 
-import { validateDays, validateTripInfo, validateTravel } from './model.js';
+import { validateDays, validateTripInfo, validateTravel, mergeTravelSections } from './model.js';
 import config from '../trip.config.js';
 import { cloneTripDays } from './utils.js';
 
@@ -18,7 +18,7 @@ let dbPromise = null;
 export function loadTravelInfo() {
   try {
     const raw = localStorage.getItem(TRAVEL_STORAGE_KEY);
-    if (raw) return validateTravel(JSON.parse(raw));
+    if (raw) return mergeTravelSections(JSON.parse(raw), config.travel);
   } catch {
     // Fall back to the configured travel information if saved data is invalid.
   }
