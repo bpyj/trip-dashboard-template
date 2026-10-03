@@ -1,16 +1,20 @@
-// Collapsing overview panels never rebuilds their content or discards edits.
+import { createDisclosure } from './ui.js';
+
+// Toggling panels never rebuilds content or discards unsaved edits.
+const panels = new Map();
+
 export function setOverviewExpanded(name, expanded) {
-  const button = document.getElementById(`${name}OverviewToggle`);
-  const body = document.getElementById(`${name}OverviewBody`);
-  body.classList.toggle('hidden', !expanded);
-  button.setAttribute('aria-expanded', String(expanded));
+  panels.get(name)(expanded);
 }
 
 export function initOverviewPanels() {
   for (const name of ['trip', 'travel']) {
-    const button = document.getElementById(`${name}OverviewToggle`);
-    button.addEventListener('click', () => {
-      setOverviewExpanded(name, button.getAttribute('aria-expanded') !== 'true');
-    });
+    panels.set(
+      name,
+      createDisclosure(
+        document.getElementById(`${name}OverviewToggle`),
+        document.getElementById(`${name}OverviewBody`),
+      ),
+    );
   }
 }
