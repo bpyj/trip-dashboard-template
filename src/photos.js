@@ -1,9 +1,9 @@
+import { createAlbumDialog } from './ui.js';
 import {
   COMPRESS_TARGET_BYTES,
   MAX_DIMENSION,
   photoModal,
   photoModalCaptionInput,
-  photoModalClose,
   photoModalCounter,
   photoModalDeleteBtn,
   photoModalImage,
@@ -16,17 +16,17 @@ import {
 import {
   addPhotoRecord,
   deletePhotoRecord,
-  formatDateTime,
+  formatPhotoMetadata,
   loadPhotosByDay,
   loadDayCoverId,
   saveDayCoverId,
   updatePhotoCaption,
 } from './storage.js';
-import { chooseCoverPhoto, escapeHtml, formatBytes } from './utils.js';
+import { chooseCoverPhoto, escapeHtml } from './utils.js';
 
 // Photo compression, album previews and the photo dialog.
 
-let albumReturnFocus = null;
+let albumDialog = null;
 let activeAlbum = [];
 let activeAlbumIndex = 0;
 let activeAlbumDayId = '';
@@ -34,26 +34,16 @@ let albumBusy = false;
 
 export function openPhotoModal(photos, startIndex = 0, dayId = '') {
   if (!Array.isArray(photos) || !dayId) return;
-  albumReturnFocus = document.activeElement;
   activeAlbum = photos;
   activeAlbumIndex = Math.max(0, Math.min(startIndex, photos.length - 1));
   activeAlbumDayId = dayId;
   document.getElementById('photoStatus').textContent = '';
   renderPhotoModal();
-  photoModal.classList.add('open');
-  photoModal.setAttribute('aria-hidden', 'false');
-  document.body.style.overflow = 'hidden';
-  photoModalClose.focus({ preventScroll: true });
+  albumDialog.open();
 }
 
 export function closePhotoModal() {
-  photoModal.classList.remove('open');
-  photoModal.setAttribute('aria-hidden', 'true');
-  document.body.style.overflow = '';
-  albumReturnFocus?.focus({ preventScroll: true });
-  activeAlbum = [];
-  activeAlbumIndex = 0;
-  activeAlbumDayId = '';
+  albumDialog.close();
 }
 
 export function renderPhotoModal({ preserveCaption = false } = {}) {
@@ -83,7 +73,7 @@ export function renderPhotoModal({ preserveCaption = false } = {}) {
   photoModalImage.alt = photo.caption ? photo.caption : 'Trip photo';
   if (!preserveCaption) photoModalCaptionInput.value = photo.caption || '';
   photoModalCaptionInput.readOnly = albumBusy;
-  photoModalMeta.textContent = `${formatDateTime(photo.createdAt)} · Saved ${formatBytes(photo.savedSize || 0)}${photo.wasCompressed ? ` · Compressed from ${formatBytes(photo.originalSize || 0)}` : ''}`;
+  photoModalMeta.textContent = formatPhotoMetadata(photo);
   photoModalCounter.textContent = `${activeAlbumIndex + 1} / ${activeAlbum.length}`;
 }
 
@@ -298,6 +288,17 @@ export async function runPhotoAction(action, success = 'Saved.', pending = '') {
 }
 
 export function initPhotoAlbum() {
+  if (albumDialog) return;
+  albumDialog = createAlbumDialog(photoModal, {
+    previous: showPrevPhoto,
+    next: showNextPhoto,
+    onClose() {
+      activeAlbum = [];
+      activeAlbumIndex = 0;
+      activeAlbumDayId = '';
+      photoModalImage.removeAttribute('src');
+    },
+  });
   const uploadButton = document.getElementById('photoModalUploadBtn');
   const uploadInput = document.getElementById('photoModalUploadInput');
   uploadButton.addEventListener('click', () => uploadInput.click());
@@ -313,68 +314,9 @@ export function initPhotoAlbum() {
       uploadInput.value = '';
     }
   });
-  photoModalClose.addEventListener('click', closePhotoModal);
-  photoPrevBtn.addEventListener('click', showPrevPhoto);
-  photoNextBtn.addEventListener('click', showNextPhoto);
   photoModalSaveBtn.addEventListener('click', () => runPhotoAction(saveActivePhotoCaption));
   photoModalDeleteBtn.addEventListener('click', () => runPhotoAction(deleteActivePhoto));
   photoModalThumbnailBtn.addEventListener('click', () =>
     runPhotoAction(setActivePhotoAsThumbnail, 'Day thumbnail updated.'),
-  );
-  photoModal.addEventListener('click', (event) => {
-    if (event.target === photoModal) closePhotoModal();
-  });
-  document.addEventListener('keydown', (event) => {
-    if (!photoModal.classList.contains('open')) return;
-    if (event.key === 'Escape') closePhotoModal();
-    if (event.target !== photoModalCaptionInput) {
-      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-        event.preventDefault();
-        navigatePhoto(event.key === 'ArrowLeft' ? -1 : 1);
-      }
-    }
-    if (event.key === 'Tab') {
-      const focusables = Array.from(
-        photoModal.querySelectorAll('button:not(:disabled), input:not([type=file]):not(:disabled)'),
-      );
-      const first = focusables[0],
-        last = focusables.at(-1);
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus({ preventScroll: true });
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus({ preventScroll: true });
-      }
-    }
-  });
-  let start = null;
-  photoModalImage.addEventListener(
-    'touchstart',
-    (event) => {
-      start =
-        event.touches.length === 1
-          ? { x: event.touches[0].clientX, y: event.touches[0].clientY }
-          : null;
-    },
-    { passive: true },
-  );
-  photoModalImage.addEventListener(
-    'touchmove',
-    (event) => {
-      if (event.touches.length !== 1) start = null;
-    },
-    { passive: true },
-  );
-  photoModalImage.addEventListener(
-    'touchend',
-    (event) => {
-      if (!start || !event.changedTouches.length) return;
-      const dx = event.changedTouches[0].clientX - start.x;
-      const dy = event.changedTouches[0].clientY - start.y;
-      start = null;
-      if (Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy)) navigatePhoto(dx < 0 ? 1 : -1);
-    },
-    { passive: true },
   );
 }
