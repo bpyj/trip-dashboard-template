@@ -141,10 +141,17 @@ body {
   font-size: 0.875rem;
   color: var(--muted);
 }
+.day-title-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 6px;
+}
 .day-title {
+  min-width: 0;
   font-size: 1.06rem;
   font-weight: 800;
-  margin: 0 0 6px;
+  margin: 0;
 }
 .day-summary {
   color: var(--muted);
@@ -171,9 +178,17 @@ body {
   object-fit: cover;
   display: block;
 }
-.toggle-icon {
-  font-size: 1.3rem;
-  color: var(--muted);
+.toggle-icon,
+.panel-toggle-icon {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  margin-top: -4px;
+  margin-right: 2px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg);
   transition: transform 0.2s ease;
 }
 .day-content {
@@ -186,7 +201,7 @@ body {
   display: block;
 }
 .day-card.open .toggle-icon {
-  transform: rotate(45deg);
+  transform: rotate(225deg);
 }
 .status-row {
   margin-bottom: 12px;
@@ -542,7 +557,7 @@ body {
 }
 .archive-day-details[open] > summary .toggle-icon,
 .archive-album[open] > summary .toggle-icon {
-  transform: rotate(45deg);
+  transform: rotate(225deg);
 }
 .archive-album-body {
   padding: 0 16px 16px;
@@ -645,7 +660,8 @@ select {
   html {
     scroll-behavior: auto;
   }
-  .toggle-icon {
+  .toggle-icon,
+  .panel-toggle-icon {
     transition: none;
   }
 }
@@ -718,10 +734,6 @@ select {
   text-align: left;
   cursor: pointer;
 }
-.panel-toggle-icon {
-  font-size: 1.2rem;
-  color: var(--muted);
-}
 .panel-heading h2 {
   flex: 1;
   min-width: 0;
@@ -785,7 +797,7 @@ select {
   margin-top: 14px;
 }
 .archive-overview[open] > summary .panel-toggle-icon {
-  transform: rotate(45deg);
+  transform: rotate(225deg);
 }
 .archive-travel-heading {
   font-size: 1.15rem;
@@ -834,4 +846,8 @@ select {
   .photo-modal-main {
     height: 38dvh;
   }
+}
+
+.heading-toggle[aria-expanded='true'] .panel-toggle-icon {
+  transform: rotate(225deg);
 }
