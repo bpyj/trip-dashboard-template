@@ -92,6 +92,7 @@ The template contains fictional sample plans and no personal booking references,
 | `src/model.js`             | Configuration and stored-day validation.                  |
 | `src/state.js`             | Current trip days and DOM references.                     |
 | `src/storage.js`           | Storage keys, notes and transactional photo persistence.  |
+| `src/ui.js`                | Shared panel, album, focus and swipe interactions.        |
 | `src/panels.js`            | Overview panel toggles.                                   |
 | `src/travel.js`            | Travel information editor.                                |
 | `src/trip.js`              | Trip settings editor.                                     |
