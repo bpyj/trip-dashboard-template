@@ -1094,12 +1094,18 @@ test('photo size labels are concise, accurate and shared with archives', async (
     dataUrl: 'data:image/jpeg;base64,AQID',
     createdAt: '2027-06-01T00:00:00Z',
   };
-  assert.equal(app.formatPhotoMetadata(photo), 'Current 25 KB · Compressed from 73 KB');
+  const uploaded = `Uploaded ${app.formatDateTime(photo.createdAt)} · `;
+  assert.match(uploaded, /1 Jun 2027/);
+  assert.match(uploaded, /[0-9]{2}:[0-9]{2}/);
+  assert.equal(app.formatPhotoMetadata(photo), uploaded + 'Current 25 KB · Compressed from 73 KB');
   assert.equal(
     app.formatPhotoMetadata({ ...photo, savedSize: 76 * 1024 }),
-    'Current 76 KB · Original 73 KB',
+    uploaded + 'Current 76 KB · Original 73 KB',
   );
-  assert.equal(app.formatPhotoMetadata({ ...photo, wasCompressed: false }), 'Current 25 KB');
+  assert.equal(
+    app.formatPhotoMetadata({ ...photo, wasCompressed: false }),
+    uploaded + 'Current 25 KB',
+  );
   await app.addPhotoRecord(photo);
   await app.openDayAlbum(photo.dayId);
   assert.equal(
