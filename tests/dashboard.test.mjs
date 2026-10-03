@@ -836,3 +836,72 @@ test('chosen day thumbnails survive browsing, new uploads, reload and archive ex
   assert.equal(coverSrc(), undefined);
   assert.equal(live.errors.length, 0);
 });
+
+test('expanded travel sections preserve legacy edits without duplicates and match read-only archives', async (t) => {
+  const legacy = [
+    { title: 'My saved flight plan', details: ['Existing flight details'] },
+    { title: 'My saved hotel', details: ['Existing hotel details'] },
+  ];
+  const key = `trip:${config.id}:travel:v1`;
+  const database = new IDBFactory();
+  const live = openDashboard(database, { [key]: JSON.stringify(legacy) });
+  t.after(() => live.window.close());
+  await tick();
+  const { document } = live.window;
+  const app = live.window.TripTest;
+  assert.equal(app.tripTravel.length, 7);
+  assert.equal(app.tripTravel[0].title, legacy[0].title);
+  assert.equal(app.tripTravel[1].details[0], legacy[1].details[0]);
+  assert.deepEqual(
+    [...app.tripTravel].slice(2).map((item) => item.title),
+    ['Weather', 'Currency rate', 'Time difference', 'Insurance policy', 'Emergency phone numbers'],
+  );
+  assert.equal(
+    document.getElementById('editTravelBtn').className,
+    document.getElementById('editTripBtn').className,
+  );
+  document.getElementById('editTravelBtn').click();
+  const values = [
+    'Existing flight details',
+    'Existing hotel details',
+    'Weather checked for the trip',
+    'Conversion rate checked for the trip',
+    'Destination is one hour ahead',
+    'Sample policy number',
+    'Police: add the verified destination number\nAmbulance: add the verified destination number',
+  ];
+  values.forEach((value, index) => {
+    document.getElementById(`travel-details-${index}`).value = value;
+  });
+  document
+    .getElementById('travelEditor')
+    .dispatchEvent(new live.window.Event('submit', { cancelable: true }));
+  assert.deepEqual(
+    [...app.tripTravel].map((item) => item.id),
+    config.travel.map((item) => item.id),
+  );
+  assert.equal(app.tripTravel[6].details.length, 2);
+  const saved = { [key]: live.window.localStorage.getItem(key) };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const reload = openDashboard(database, saved);
+    t.after(() => reload.window.close());
+    await tick();
+    assert.equal(reload.window.TripTest.tripTravel.length, 7);
+    assert.equal(reload.window.TripTest.tripTravel[0].title, legacy[0].title);
+    assert.equal(reload.window.TripTest.tripTravel[5].details[0], 'Sample policy number');
+    assert.equal(new Set(reload.window.TripTest.tripTravel.map((item) => item.id)).size, 7);
+  }
+  const html = app.buildArchiveHtml(await app.buildArchivePayload(), css);
+  for (const scripted of [false, true]) {
+    const archive = new JSDOM(html, { ...(scripted ? { runScripts: 'dangerously' } : {}) });
+    t.after(() => archive.window.close());
+    const exported = archive.window.document;
+    assert.equal(
+      exported.getElementById('travelInfo').innerHTML,
+      document.getElementById('travelInfo').innerHTML,
+    );
+    assert.equal(exported.getElementById('editTravelBtn'), null);
+    assert.equal(exported.getElementById('travelEditor'), null);
+  }
+  assert.equal(live.errors.length, 0);
+});
