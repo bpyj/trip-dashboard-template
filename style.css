@@ -150,12 +150,6 @@ body {
   color: var(--muted);
   font-size: 0.92rem;
 }
-.day-header-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
 .day-cover {
   width: 72px;
   height: 72px;
@@ -293,15 +287,6 @@ body {
 .photo-input {
   display: none;
 }
-.archive-photo-note {
-  color: var(--muted);
-  font-size: 0.88rem;
-  border: 1px dashed var(--line);
-  border-radius: 12px;
-  background: #fafafa;
-  padding: 10px 12px;
-  margin-bottom: 12px;
-}
 .photo-modal {
   position: fixed;
   inset: 0;
@@ -328,10 +313,11 @@ body {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
 }
 .photo-modal-top {
-  display: flex;
-  justify-content: space-between;
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   padding: 12px 14px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
@@ -340,30 +326,23 @@ body {
   color: rgba(255, 255, 255, 0.82);
   font-weight: 700;
 }
-.photo-modal-close {
-  border: 0;
-  background: rgba(255, 255, 255, 0.12);
-  color: white;
-  border-radius: 10px;
-  padding: 8px 12px;
-  font-size: 1rem;
-  cursor: pointer;
-  min-height: 44px;
-}
 .photo-modal-main {
   position: relative;
   background: #0b1220;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 180px;
+  height: 52vh;
+  height: 52dvh;
+  min-height: 120px;
   padding: 10px;
   flex-shrink: 1;
+  overflow: hidden;
   min-width: 0;
 }
 .photo-modal-image {
   max-width: 100%;
-  max-height: 52vh;
+  max-height: 100%;
   object-fit: contain;
   border-radius: 12px;
   background: #0b1220;
@@ -388,6 +367,8 @@ body {
   right: 12px;
 }
 .photo-modal-bottom {
+  max-height: 44dvh;
+  flex-shrink: 0;
   padding: 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
   background: #111827;
@@ -540,31 +521,6 @@ body {
 .hidden {
   display: none !important;
 }
-.table-wrap {
-  overflow-x: auto;
-}
-.flight-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.92rem;
-  margin: 8px 0;
-}
-.flight-table th,
-.flight-table td {
-  padding: 10px 8px;
-  text-align: left;
-  border-bottom: 1px solid var(--line);
-  vertical-align: top;
-}
-.flight-table thead th {
-  color: var(--muted);
-  background: #f8fafc;
-}
-.seat-details summary {
-  cursor: pointer;
-  font-weight: 700;
-  padding: 10px 0;
-}
 .export-result {
   margin-top: 14px;
   padding: 12px;
@@ -577,22 +533,6 @@ body {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.archive-details-toggle,
-.archive-album-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 16px;
-  border-top: 1px solid var(--line);
-  cursor: pointer;
-  font-weight: 700;
-  list-style: none;
-}
-.archive-details-toggle::-webkit-details-marker,
-.archive-album-toggle::-webkit-details-marker {
-  display: none;
-}
 .archive-day-details > .day-content {
   display: block;
 }
@@ -603,17 +543,6 @@ body {
 .archive-day-details[open] > summary .toggle-icon,
 .archive-album[open] > summary .toggle-icon {
   transform: rotate(45deg);
-}
-.archive-album-label {
-  flex: 1;
-  min-width: 0;
-}
-.archive-album-label > span {
-  display: block;
-  color: var(--muted);
-  font-size: 0.875rem;
-  font-weight: 400;
-  margin-top: 4px;
 }
 .archive-album-body {
   padding: 0 16px 16px;
@@ -672,12 +601,6 @@ body {
 .archive-photo-nav .btn {
   font-size: 0.875rem;
 }
-.archive-empty-album {
-  padding: 14px 16px;
-  border-top: 1px solid var(--line);
-  color: var(--muted);
-  font-size: 0.9rem;
-}
 .sr-only {
   position: absolute;
   width: 1px;
@@ -712,15 +635,10 @@ select {
   .wrap {
     padding: 12px 10px 24px;
   }
-  .photo-modal-image {
-    max-height: 46vh;
-  }
+
   .day-cover {
     width: 60px;
     height: 60px;
-  }
-  .flight-table {
-    font-size: 0.875rem;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -825,10 +743,6 @@ select {
 .photo-nav:disabled {
   display: none;
 }
-.photo-modal-top {
-  flex-wrap: wrap;
-  gap: 10px;
-}
 
 @media (max-width: 480px) {
   .photo-modal {
@@ -894,5 +808,30 @@ select {
   .archive-album > summary {
     width: 110px;
     min-height: 135px;
+  }
+}
+
+.photo-modal-top .photo-modal-btn {
+  justify-self: center;
+  font-size: 0.9rem;
+}
+.photo-modal-top .photo-modal-counter {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 480px) {
+  .photo-modal-top {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .photo-modal-main {
+    height: 44dvh;
+  }
+}
+@media (max-height: 500px) {
+  .photo-modal-main {
+    min-height: 90px;
+  }
+  .photo-modal-main {
+    height: 38dvh;
   }
 }
