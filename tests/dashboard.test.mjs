@@ -989,3 +989,39 @@ test('shared album controls preserve focus, caption editing and export state', a
   assert.equal((await app.loadPhotosByDay(dayId)).length, 3);
   assert.equal(live.errors.length, 0);
 });
+
+test('bottom collapse controls are shared, preserve drafts and return to the heading', async (t) => {
+  const live = openDashboard(new IDBFactory());
+  t.after(() => live.window.close());
+  await tick();
+  const app = live.window.TripTest;
+  const document = live.window.document;
+  const verify = (document) => {
+    const bodies = [
+      ...document.querySelectorAll('#tripOverviewBody, #travelOverviewBody, .day-content'),
+    ];
+    for (const body of bodies) {
+      const heading = document.querySelector(
+        '[aria-controls="' + body.id + '"]:not(.section-collapse)',
+      );
+      assert.equal(body.querySelectorAll(':scope > .section-collapse').length, 1);
+      const footer = body.querySelector(':scope > .section-collapse');
+      assert.equal(body.lastElementChild, footer);
+      heading.click();
+      assert.equal(heading.getAttribute('aria-expanded'), 'true');
+      footer.click();
+      assert.equal(heading.getAttribute('aria-expanded'), 'false');
+      assert.equal(document.activeElement, heading);
+    }
+  };
+  const note = document.querySelector('.notes-textarea');
+  note.value = 'Unsaved draft';
+  verify(document);
+  assert.equal(note.value, 'Unsaved draft');
+  const html = app.buildArchiveHtml(await app.buildArchivePayload(), css);
+  const archive = new JSDOM(html, { runScripts: 'dangerously' });
+  t.after(() => archive.window.close());
+  verify(archive.window.document);
+  assert.equal(archive.window.document.querySelectorAll('[data-editable-only]').length, 0);
+  assert.equal(live.errors.length, 0);
+});

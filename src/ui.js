@@ -8,6 +8,22 @@ export function createDisclosure(button, body, card = null) {
   button.addEventListener('click', () => {
     setExpanded(button.getAttribute('aria-expanded') !== 'true');
   });
+  // Reuse cloned archive controls rather than adding a second footer.
+  let collapse = body.querySelector(':scope > .section-collapse');
+  if (!collapse) {
+    collapse = body.ownerDocument.createElement('button');
+    collapse.type = 'button';
+    collapse.className = 'btn secondary section-collapse';
+    collapse.textContent = 'Collapse';
+    body.append(collapse);
+  }
+  collapse.setAttribute('aria-controls', body.id);
+  collapse.setAttribute('aria-label', 'Collapse ' + button.textContent.trim());
+  collapse.addEventListener('click', () => {
+    setExpanded(false);
+    button.focus({ preventScroll: true });
+    button.scrollIntoView?.({ block: 'nearest', behavior: 'instant' });
+  });
   return setExpanded;
 }
 

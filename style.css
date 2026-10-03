@@ -842,3 +842,16 @@ select {
 .heading-toggle[aria-expanded='true'] .panel-toggle-icon {
   transform: rotate(225deg);
 }
+
+/* The shared footer is a viewing control, retained in read-only archives. */
+.section-collapse {
+  display: block;
+  min-height: 44px;
+  margin: 16px auto 0;
+}
+
+/* Native file-preview disclosures retain their functional summary control. */
+.archive-info-body > .section-collapse,
+.archive-day-details .section-collapse {
+  display: none;
+}
