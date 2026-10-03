@@ -4,7 +4,6 @@ export function setOverviewExpanded(name, expanded) {
   const body = document.getElementById(`${name}OverviewBody`);
   body.classList.toggle('hidden', !expanded);
   button.setAttribute('aria-expanded', String(expanded));
-  button.querySelector('.panel-toggle-icon').textContent = expanded ? '−' : '+';
 }
 
 export function initOverviewPanels() {
