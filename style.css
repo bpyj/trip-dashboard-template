@@ -855,3 +855,17 @@ select {
 .archive-day-details .section-collapse {
   display: none;
 }
+
+/* Shared viewport control, clear of phone safe areas and photo overlays. */
+.floating-collapse {
+  position: fixed;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  right: calc(16px + env(safe-area-inset-right, 0px));
+  z-index: 20;
+  min-height: 44px;
+  max-width: calc(100vw - 32px);
+  box-shadow: 0 4px 16px #0003;
+}
+.floating-collapse[hidden] {
+  display: none;
+}
