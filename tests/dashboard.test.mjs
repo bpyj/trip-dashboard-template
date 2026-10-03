@@ -38,6 +38,7 @@ function openDashboard(database, storage = {}) {
     virtualConsole,
     beforeParse(window) {
       window.indexedDB = database;
+      window.scrollTo = () => {};
       window.HTMLElement.prototype.scrollIntoView = function () {};
       window.alert = (message) => {
         throw new Error(message);
@@ -162,6 +163,7 @@ test('editing, storage, photos and self-contained archives survive the refactor'
   );
   assert.equal(archive.querySelectorAll('details[open]').length, 0);
   assert.equal(archive.querySelectorAll('[data-editable-only]').length, 0);
+  assert.equal(archive.getElementById('appStyles').textContent, css);
   assert.equal(archive.getElementById('tripTitle').textContent, editedTitle);
   assert.equal(archive.querySelectorAll('.day-card').length, 3);
   assert.equal(
@@ -903,5 +905,87 @@ test('expanded travel sections preserve legacy edits without duplicates and matc
     assert.equal(exported.getElementById('editTravelBtn'), null);
     assert.equal(exported.getElementById('travelEditor'), null);
   }
+  assert.equal(live.errors.length, 0);
+});
+
+test('shared album controls preserve focus, caption editing and export state', async (t) => {
+  const live = openDashboard(new IDBFactory());
+  t.after(() => live.window.close());
+  await tick();
+  const { document } = live.window;
+  const app = live.window.TripTest;
+  const dayId = '2027-06-01';
+  for (let index = 0; index < 3; index++)
+    await app.addPhotoRecord({
+      dayId,
+      dataUrl: 'data:image/png;base64,YQ==',
+      createdAt: `2027-06-01T0${index}:00:00Z`,
+    });
+  await app.refreshDayPhotos(dayId);
+  const trigger = document.querySelector(`#day-${dayId} .day-album-btn`);
+  trigger.focus();
+  trigger.click();
+  await tick();
+  const modal = document.getElementById('photoModal');
+  assert.equal(document.body.style.position, 'fixed');
+  assert.equal(document.querySelector('.wrap').inert, true);
+  const key = (target, name, shiftKey = false) =>
+    target.dispatchEvent(
+      new live.window.KeyboardEvent('keydown', {
+        key: name,
+        shiftKey,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+  key(modal, 'ArrowRight');
+  assert.equal(document.getElementById('photoModalCounter').textContent, '2 / 3');
+  const caption = document.getElementById('photoModalCaptionInput');
+  caption.value = 'Caption draft';
+  key(caption, 'ArrowLeft');
+  assert.equal(document.getElementById('photoModalCounter').textContent, '2 / 3');
+  assert.equal(caption.value, 'Caption draft');
+  const close = document.getElementById('photoModalClose');
+  close.focus();
+  key(close, 'Tab');
+  const firstControl = modal.querySelector('button:not(:disabled)');
+  assert.equal(document.activeElement, firstControl);
+  key(firstControl, 'Tab', true);
+  assert.equal(document.activeElement, close);
+  const image = document.getElementById('photoModalImage');
+  const touch = (type, points) => {
+    const event = new live.window.Event(type);
+    Object.defineProperty(event, type === 'touchend' ? 'changedTouches' : 'touches', {
+      value: points,
+    });
+    image.dispatchEvent(event);
+  };
+  touch('touchstart', [{ clientX: 100, clientY: 100 }]);
+  touch('touchend', [{ clientX: 90, clientY: 220 }]);
+  assert.equal(document.getElementById('photoModalCounter').textContent, '2 / 3');
+  touch('touchstart', [
+    { clientX: 100, clientY: 100 },
+    { clientX: 200, clientY: 100 },
+  ]);
+  touch('touchend', [{ clientX: 10, clientY: 100 }]);
+  assert.equal(document.getElementById('photoModalCounter').textContent, '2 / 3');
+  // A snapshot taken during a live modal must reopen as an unlocked document.
+  document.querySelector('.wrap').setAttribute('inert', '');
+  const preview = new JSDOM(app.buildArchiveHtml(await app.buildArchivePayload(), css));
+  t.after(() => preview.window.close());
+  assert.equal(preview.window.document.body.style.position, '');
+  assert.equal(preview.window.document.querySelector('.wrap').hasAttribute('inert'), false);
+  assert.equal(preview.window.document.querySelectorAll('[data-editable-only]').length, 0);
+  assert.equal(
+    preview.window.document.querySelector('.day-header').innerHTML,
+    document.querySelector('.day-header').innerHTML,
+  );
+  document.querySelector('.wrap').removeAttribute('inert');
+  modal.dispatchEvent(new live.window.MouseEvent('click', { bubbles: true }));
+  assert.equal(modal.classList.contains('open'), false);
+  assert.equal(document.body.style.position, '');
+  assert.equal(document.activeElement, trigger);
+  assert.equal(document.querySelector(`#day-${dayId}`).classList.contains('open'), false);
+  assert.equal((await app.loadPhotosByDay(dayId)).length, 3);
   assert.equal(live.errors.length, 0);
 });
