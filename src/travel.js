@@ -46,6 +46,7 @@ export function initTravelEditor() {
     try {
       updated = validateTravel(
         tripTravel.map((item, index) => ({
+          ...item,
           title: document.getElementById(`travel-title-${index}`).value,
           details: parseLines(document.getElementById(`travel-details-${index}`).value),
         })),
