@@ -1,3 +1,4 @@
+import { createDisclosure } from './ui.js';
 import config from '../trip.config.js';
 import { closeDayEditor, openDayEditor, saveDayEditor } from './days.js';
 import { openDayAlbum, refreshDayPhotos } from './photos.js';
@@ -92,8 +93,7 @@ export function renderDays() {
           <div class="box"><h3>Links</h3>${renderLinkButtons(day.links)}</div>
         </div>
 
-        ${`
-          <div class="day-editor">
+          <div class="day-editor" data-editable-only>
             <div class="actions" style="margin-top:0;">
               <button class="btn edit-day-btn" type="button" data-day-id="${escapeHtml(day.date)}">Edit Day</button>
             </div>
@@ -164,32 +164,26 @@ export function renderDays() {
               <div class="editor-status" role="status" id="editor-status-${escapeHtml(day.date)}"></div>
             </div>
           </div>
-        `}
 
         <div class="notes-tools">
           <div class="notes-card">
             <h3 style="margin:0 0 8px; font-size:0.98rem;">Day Notes</h3>
-            <label class="sr-only" for="notes-${escapeHtml(day.date)}">Day notes for ${escapeHtml(day.label)}</label>
+            <label class="sr-only" data-editable-only for="notes-${escapeHtml(day.date)}">Day notes for ${escapeHtml(day.label)}</label>
             <textarea class="notes-textarea" id="notes-${escapeHtml(day.date)}" placeholder="Type your own notes for this day..." ></textarea>
-            <div class="notes-help">
+            <div class="notes-help" data-editable-only>
               Use this for reminders, expenses, food notes, what happened, or anything you want to remember.
             </div>
-            <div class="actions">
-              ${`<button class="btn save-note-btn" type="button" data-day-id="${escapeHtml(day.date)}">Save Notes</button>`}
+            <div class="actions" data-editable-only>
+              <button class="btn save-note-btn" type="button" data-day-id="${escapeHtml(day.date)}">Save Notes</button>
             </div>
-            <div class="note-save-status" role="status" id="note-status-${escapeHtml(day.date)}"></div>
+            <div class="note-save-status" data-editable-only role="status" id="note-status-${escapeHtml(day.date)}"></div>
           </div>
         </div>
 
       </div>
     `;
 
-    card.querySelector('.day-header').addEventListener('click', () => {
-      card.classList.toggle('open');
-      card
-        .querySelector('.day-header')
-        .setAttribute('aria-expanded', String(card.classList.contains('open')));
-    });
+    createDisclosure(card.querySelector('.day-header'), card.querySelector('.day-content'), card);
 
     card.querySelector('.day-album-btn').addEventListener('click', async () => {
       try {
