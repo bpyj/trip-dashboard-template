@@ -68,6 +68,12 @@ Then ask:
 
 A GitHub repository stores the source code. A live trip link is created by publishing the built `dist/` folder with a static hosting service. GitHub Pages is one option; any static host can serve these three files. This template does not automatically publish or make trip data public. The included GitHub workflow checks the code and produces a downloadable build artifact.
 
+## Travel information
+
+The sample includes Flights and transfers, Accommodation, Weather, Currency rate, Time difference, Insurance policy and Emergency phone numbers. **Edit Travel** changes their titles and details; archives include the same sections without editing controls. These are saved entries, not automatic weather or exchange-rate feeds.
+
+Keep each section’s `id` stable when changing its title. Newly configured sections are added alongside saved travel information, preserving older edits without duplicate sections.
+
 ## Photos, archives and sharing
 
 Uploaded photos live in IndexedDB on the device/browser where they were added. In an album, **Set as Thumbnail** chooses the day’s cover photo. The choice survives reloads and new uploads, and appears in exported archives. If the selected photo is deleted, another available photo becomes the cover. Edited trip headings, travel information, days and notes use localStorage. Each trip’s ID creates a separate storage namespace. These records do not sync to GitHub, another device or another person opening the live site.
