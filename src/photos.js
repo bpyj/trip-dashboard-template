@@ -9,15 +9,20 @@ import {
   photoModalImage,
   photoModalMeta,
   photoModalSaveBtn,
+  photoModalThumbnailBtn,
+  photoPrevBtn,
+  photoNextBtn,
 } from './state.js';
 import {
   addPhotoRecord,
   deletePhotoRecord,
   formatDateTime,
   loadPhotosByDay,
+  loadDayCoverId,
+  saveDayCoverId,
   updatePhotoCaption,
 } from './storage.js';
-import { escapeHtml, formatBytes } from './utils.js';
+import { chooseCoverPhoto, escapeHtml, formatBytes } from './utils.js';
 
 // Photo compression, album previews and the photo dialog.
 
@@ -25,12 +30,13 @@ let albumReturnFocus = null;
 let activeAlbum = [];
 let activeAlbumIndex = 0;
 let activeAlbumDayId = '';
+let albumBusy = false;
 
 export function openPhotoModal(photos, startIndex = 0, dayId = '') {
   if (!Array.isArray(photos) || !dayId) return;
   albumReturnFocus = document.activeElement;
   activeAlbum = photos;
-  activeAlbumIndex = startIndex;
+  activeAlbumIndex = Math.max(0, Math.min(startIndex, photos.length - 1));
   activeAlbumDayId = dayId;
   document.getElementById('photoStatus').textContent = '';
   renderPhotoModal();
@@ -50,15 +56,20 @@ export function closePhotoModal() {
   activeAlbumDayId = '';
 }
 
-export function renderPhotoModal() {
+export function renderPhotoModal({ preserveCaption = false } = {}) {
   const hasPhoto = activeAlbum.length > 0;
   photoModalImage.classList.toggle('hidden', !hasPhoto);
   document.getElementById('photoModalEmpty').classList.toggle('hidden', hasPhoto);
   photoModalCaptionInput.disabled = !hasPhoto;
-  photoModalSaveBtn.disabled = !hasPhoto;
-  photoModalDeleteBtn.disabled = !hasPhoto;
-  document.getElementById('photoPrevBtn').disabled = activeAlbum.length < 2;
-  document.getElementById('photoNextBtn').disabled = activeAlbum.length < 2;
+  photoModalSaveBtn.disabled = !hasPhoto || albumBusy;
+  photoModalDeleteBtn.disabled = !hasPhoto || albumBusy;
+  photoPrevBtn.disabled = photoNextBtn.disabled = activeAlbum.length < 2 || albumBusy;
+  document.getElementById('photoModalUploadBtn').disabled = albumBusy;
+  const currentCover = loadDayCoverId(activeAlbumDayId);
+  const isCover = hasPhoto && activeAlbum[activeAlbumIndex].id === currentCover;
+  photoModalThumbnailBtn.disabled = !hasPhoto || albumBusy || isCover;
+  photoModalThumbnailBtn.setAttribute('aria-pressed', String(isCover));
+  photoModalThumbnailBtn.textContent = isCover ? 'Current Thumbnail' : 'Set as Thumbnail';
   if (!hasPhoto) {
     photoModalImage.removeAttribute('src');
     photoModalCaptionInput.value = '';
@@ -70,57 +81,60 @@ export function renderPhotoModal() {
   const photo = activeAlbum[activeAlbumIndex];
   photoModalImage.src = photo.dataUrl;
   photoModalImage.alt = photo.caption ? photo.caption : 'Trip photo';
-  photoModalCaptionInput.value = photo.caption || '';
-  photoModalCaptionInput.readOnly = false;
-  photoModalSaveBtn.disabled = false;
-  photoModalDeleteBtn.disabled = false;
+  if (!preserveCaption) photoModalCaptionInput.value = photo.caption || '';
+  photoModalCaptionInput.readOnly = albumBusy;
   photoModalMeta.textContent = `${formatDateTime(photo.createdAt)} · Saved ${formatBytes(photo.savedSize || 0)}${photo.wasCompressed ? ` · Compressed from ${formatBytes(photo.originalSize || 0)}` : ''}`;
   photoModalCounter.textContent = `${activeAlbumIndex + 1} / ${activeAlbum.length}`;
 }
 
-export function showPrevPhoto() {
-  if (!activeAlbum.length) return;
-  activeAlbumIndex = (activeAlbumIndex - 1 + activeAlbum.length) % activeAlbum.length;
+function navigatePhoto(direction) {
+  if (!activeAlbum.length || albumBusy) return;
+  activeAlbumIndex = (activeAlbumIndex + direction + activeAlbum.length) % activeAlbum.length;
   renderPhotoModal();
 }
 
+export function showPrevPhoto() {
+  navigatePhoto(-1);
+}
+
 export function showNextPhoto() {
-  if (!activeAlbum.length) return;
-  activeAlbumIndex = (activeAlbumIndex + 1) % activeAlbum.length;
+  navigatePhoto(1);
+}
+
+async function refreshActiveAlbum(dayId, photoId) {
+  const photos = await loadPhotosByDay(dayId);
+  await refreshDayPhotos(dayId);
+  if (activeAlbumDayId !== dayId || !photoModal.classList.contains('open')) return;
+  activeAlbum = photos;
+  const index = photos.findIndex((photo) => photo.id === photoId);
+  activeAlbumIndex =
+    index >= 0 ? index : Math.max(0, Math.min(activeAlbumIndex, photos.length - 1));
   renderPhotoModal();
 }
 
 export async function saveActivePhotoCaption() {
-  if (!activeAlbum.length) return;
   const photo = activeAlbum[activeAlbumIndex];
-  const newCaption = photoModalCaptionInput.value.trim();
-  await updatePhotoCaption(photo.id, newCaption);
-
-  const refreshed = await loadPhotosByDay(activeAlbumDayId);
-  const newIndex = refreshed.findIndex((p) => p.id === photo.id);
-  activeAlbum = refreshed;
-  if (newIndex >= 0) activeAlbumIndex = newIndex;
-  renderPhotoModal();
-  await refreshDayPhotos(activeAlbumDayId);
+  if (!photo) return;
+  const dayId = activeAlbumDayId;
+  await updatePhotoCaption(photo.id, photoModalCaptionInput.value.trim());
+  await refreshActiveAlbum(dayId, photo.id);
 }
 
 export async function deleteActivePhoto() {
-  if (!activeAlbum.length) return;
-
   const photo = activeAlbum[activeAlbumIndex];
-  const dayIdToRefresh = activeAlbumDayId;
-
+  if (!photo) return;
+  const dayId = activeAlbumDayId;
   await deletePhotoRecord(photo.id);
+  await refreshActiveAlbum(dayId);
+}
 
-  const refreshed = await loadPhotosByDay(dayIdToRefresh);
-
-  activeAlbum = refreshed;
-  if (activeAlbumIndex >= activeAlbum.length) {
-    activeAlbumIndex = Math.max(0, activeAlbum.length - 1);
-  }
-
-  renderPhotoModal();
-  await refreshDayPhotos(dayIdToRefresh);
+export async function setActivePhotoAsThumbnail() {
+  const photo = activeAlbum[activeAlbumIndex];
+  if (!photo) return;
+  const dayId = activeAlbumDayId;
+  saveDayCoverId(dayId, photo.id);
+  await refreshDayPhotos(dayId);
+  if (activeAlbumDayId === dayId) renderPhotoModal({ preserveCaption: true });
 }
 
 export async function openDayAlbum(dayId) {
@@ -137,12 +151,16 @@ export function renderDayCover(dayId, photos) {
     return;
   }
 
-  const cover = photos[0];
-  slot.innerHTML = `<img src="${cover.dataUrl}" alt="Cover photo for ${escapeHtml(dayId)}">`;
+  const cover = chooseCoverPhoto(photos, loadDayCoverId(dayId));
+  slot.innerHTML = `<img src="${escapeHtml(cover.dataUrl)}" alt="Cover photo for ${escapeHtml(dayId)}">`;
 }
 
 export async function refreshDayPhotos(dayId) {
-  renderDayCover(dayId, await loadPhotosByDay(dayId));
+  const photos = await loadPhotosByDay(dayId);
+  const cover = chooseCoverPhoto(photos, loadDayCoverId(dayId));
+  // Pin the current automatic cover once, preserving it through future uploads.
+  if (loadDayCoverId(dayId) !== (cover?.id ?? null)) saveDayCoverId(dayId, cover?.id ?? null);
+  renderDayCover(dayId, photos);
 }
 
 export async function uploadActiveAlbumFiles(files) {
@@ -229,6 +247,7 @@ export async function saveFilesForDay(dayId, fileList) {
   const files = Array.from(fileList || []);
   if (!files.length) return;
 
+  await refreshDayPhotos(dayId);
   try {
     for (const file of files) {
       if (!file.type.startsWith('image/')) continue;
@@ -258,4 +277,104 @@ export async function saveFilesForDay(dayId, fileList) {
       renderPhotoModal();
     }
   }
+}
+
+export async function runPhotoAction(action, success = 'Saved.', pending = '') {
+  if (albumBusy) return;
+  const status = document.getElementById('photoStatus');
+  status.textContent = pending;
+  albumBusy = true;
+  renderPhotoModal({ preserveCaption: true });
+  try {
+    await action();
+    status.textContent = success;
+  } catch (error) {
+    status.textContent = 'Unable to save. Please try again.';
+    console.error(error);
+  } finally {
+    albumBusy = false;
+    renderPhotoModal({ preserveCaption: true });
+  }
+}
+
+export function initPhotoAlbum() {
+  const uploadButton = document.getElementById('photoModalUploadBtn');
+  const uploadInput = document.getElementById('photoModalUploadInput');
+  uploadButton.addEventListener('click', () => uploadInput.click());
+  uploadInput.addEventListener('change', async () => {
+    if (!uploadInput.files.length) return;
+    try {
+      await runPhotoAction(
+        () => uploadActiveAlbumFiles(uploadInput.files),
+        'Photos saved.',
+        'Uploading photos…',
+      );
+    } finally {
+      uploadInput.value = '';
+    }
+  });
+  photoModalClose.addEventListener('click', closePhotoModal);
+  photoPrevBtn.addEventListener('click', showPrevPhoto);
+  photoNextBtn.addEventListener('click', showNextPhoto);
+  photoModalSaveBtn.addEventListener('click', () => runPhotoAction(saveActivePhotoCaption));
+  photoModalDeleteBtn.addEventListener('click', () => runPhotoAction(deleteActivePhoto));
+  photoModalThumbnailBtn.addEventListener('click', () =>
+    runPhotoAction(setActivePhotoAsThumbnail, 'Day thumbnail updated.'),
+  );
+  photoModal.addEventListener('click', (event) => {
+    if (event.target === photoModal) closePhotoModal();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (!photoModal.classList.contains('open')) return;
+    if (event.key === 'Escape') closePhotoModal();
+    if (event.target !== photoModalCaptionInput) {
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        navigatePhoto(event.key === 'ArrowLeft' ? -1 : 1);
+      }
+    }
+    if (event.key === 'Tab') {
+      const focusables = Array.from(
+        photoModal.querySelectorAll('button:not(:disabled), input:not([type=file]):not(:disabled)'),
+      );
+      const first = focusables[0],
+        last = focusables.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus({ preventScroll: true });
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus({ preventScroll: true });
+      }
+    }
+  });
+  let start = null;
+  photoModalImage.addEventListener(
+    'touchstart',
+    (event) => {
+      start =
+        event.touches.length === 1
+          ? { x: event.touches[0].clientX, y: event.touches[0].clientY }
+          : null;
+    },
+    { passive: true },
+  );
+  photoModalImage.addEventListener(
+    'touchmove',
+    (event) => {
+      if (event.touches.length !== 1) start = null;
+    },
+    { passive: true },
+  );
+  photoModalImage.addEventListener(
+    'touchend',
+    (event) => {
+      if (!start || !event.changedTouches.length) return;
+      const dx = event.changedTouches[0].clientX - start.x;
+      const dy = event.changedTouches[0].clientY - start.y;
+      start = null;
+      if (Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy)) navigatePhoto(dx < 0 ? 1 : -1);
+    },
+    { passive: true },
+  );
 }
