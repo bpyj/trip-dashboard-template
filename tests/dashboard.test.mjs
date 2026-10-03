@@ -1025,3 +1025,58 @@ test('bottom collapse controls are shared, preserve drafts and return to the hea
   assert.equal(archive.window.document.querySelectorAll('[data-editable-only]').length, 0);
   assert.equal(live.errors.length, 0);
 });
+
+test('floating collapse follows the visible expanded section in dashboard and archive', async (t) => {
+  const live = openDashboard(new IDBFactory());
+  t.after(() => live.window.close());
+  await tick();
+  const verify = (window) => {
+    const document = window.document;
+    const control = document.querySelector('.floating-collapse');
+    assert.equal(document.querySelectorAll('.floating-collapse').length, 1);
+    assert.equal(control.hidden, true);
+    Object.defineProperty(window, 'innerWidth', { value: 375, configurable: true });
+    Object.defineProperty(window, 'innerHeight', { value: 667, configurable: true });
+    const bodies = [...document.querySelectorAll('.day-content')];
+    const headings = bodies.map((body) =>
+      document.querySelector('[aria-controls="' + body.id + '"]:not(.section-collapse)'),
+    );
+    let firstVisible = true;
+    bodies.forEach((body, index) => {
+      body.getBoundingClientRect = () => ({ bottom: index === 0 && !firstVisible ? -10 : 1800 });
+      headings[index].getBoundingClientRect = () => ({ top: index === 0 ? -500 : 100 });
+    });
+    headings[0].click();
+    headings[1].click();
+    assert.equal(control.hidden, false);
+    assert.equal(control.getAttribute('aria-controls'), bodies[0].id);
+    firstVisible = false;
+    window.dispatchEvent(new window.Event('scroll'));
+    assert.equal(control.getAttribute('aria-controls'), bodies[1].id);
+    const modal = document.querySelector('.photo-modal');
+    modal.classList.add('open');
+    window.dispatchEvent(new window.Event('scroll'));
+    assert.equal(control.hidden, true);
+    modal.classList.remove('open');
+    window.dispatchEvent(new window.Event('resize'));
+    assert.equal(control.hidden, false);
+    control.click();
+    assert.equal(headings[1].getAttribute('aria-expanded'), 'false');
+    assert.equal(headings[0].getAttribute('aria-expanded'), 'true');
+    assert.equal(document.activeElement, headings[1]);
+    assert.equal(control.hidden, true);
+  };
+  const html = live.window.TripTest.buildArchiveHtml(
+    await live.window.TripTest.buildArchivePayload(),
+    css,
+  );
+  const archive = new JSDOM(html, { runScripts: 'dangerously' });
+  t.after(() => archive.window.close());
+  verify(live.window);
+  verify(archive.window);
+  const fallback = new JSDOM(html);
+  t.after(() => fallback.window.close());
+  assert.equal(fallback.window.document.querySelector('.floating-collapse'), null);
+  assert.ok(fallback.window.document.querySelector('details > summary'));
+  assert.equal(live.errors.length, 0);
+});
