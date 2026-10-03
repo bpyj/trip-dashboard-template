@@ -147,16 +147,29 @@ test('editing, storage, photos and self-contained archives survive the refactor'
 
   const payload = await app.buildArchivePayload();
   const html = app.buildArchiveHtml(payload, css);
+
   // No scripts or network are needed for day details and album navigation.
   const preview = new JSDOM(html, { url: 'file:///trip-archive.html' });
   t.after(() => preview.window.close());
   const archive = preview.window.document;
-  assert.equal(archive.querySelector('.hero').nextElementSibling.id, 'daysContainer');
+  assert.equal(
+    archive.querySelector('.hero').nextElementSibling.querySelector('#travelInfo').id,
+    'travelInfo',
+  );
+  assert.equal(
+    archive.querySelector('.hero').nextElementSibling.nextElementSibling.id,
+    'daysContainer',
+  );
   assert.equal(archive.querySelectorAll('details[open]').length, 0);
   assert.equal(archive.querySelectorAll('[data-editable-only]').length, 0);
   assert.equal(archive.getElementById('tripTitle').textContent, editedTitle);
   assert.equal(archive.querySelectorAll('.day-card').length, 3);
-  assert.equal(archive.querySelectorAll('.edit-day-btn,.photo-modal,.backup-panel').length, 0);
+  assert.equal(
+    archive.querySelectorAll(
+      '.edit-day-btn,.backup-panel,input[type="file"],textarea,.save-note-btn',
+    ).length,
+    0,
+  );
   assert.equal(archive.querySelectorAll('script[src],link[rel="stylesheet"]').length, 0);
   assert.equal(
     archive.querySelector('#day-2027-06-02 .archive-note').textContent,
@@ -166,7 +179,7 @@ test('editing, storage, photos and self-contained archives survive the refactor'
     archive.querySelector('#day-2027-06-02 .day-cover img').getAttribute('src'),
     photos[0].dataUrl,
   );
-  const album = archive.querySelector('.archive-album');
+  const album = archive.querySelector('#day-2027-06-02 .archive-album');
   album.open = true;
   assert.equal(album.parentElement.querySelector('.archive-day-details').open, false);
   const figures = album.querySelectorAll('figure');
@@ -198,20 +211,27 @@ test('editing, storage, photos and self-contained archives survive the refactor'
   });
   t.after(() => scripted.window.close());
   const sd = scripted.window.document;
-  const trigger = sd.querySelector('.archive-album > summary');
+  const trigger = sd.querySelector('#day-2027-06-02 .day-album-btn');
   const overlay = sd.getElementById('archivePhotoModal');
   trigger.click();
   assert.equal(overlay.classList.contains('open'), true);
-  assert.equal(trigger.parentElement.open, false);
+  assert.equal(sd.querySelector('#day-2027-06-02').classList.contains('open'), false);
+  assert.equal(
+    sd.querySelector('#day-2027-06-02 .day-heading-row').className,
+    document.querySelector('.day-heading-row').className,
+  );
   assert.equal(sd.querySelector('.wrap').inert, true);
   assert.equal(sd.body.style.position, 'fixed');
   assert.equal(sd.body.style.top, '-240px');
   assert.equal(overlay.querySelector('.photo-modal-counter').textContent, '1 / 3');
   assert.equal(
-    overlay
-      .querySelector('.photo-modal-dialog')
-      .firstElementChild.classList.contains('archive-modal-controls'),
-    true,
+    overlay.querySelector('.photo-modal-dialog').firstElementChild.className,
+    'photo-modal-top',
+  );
+  assert.equal(overlay.querySelector('.photo-nav.prev').dataset.action, 'previous');
+  assert.deepEqual(
+    [...overlay.querySelectorAll('.photo-modal-actions button')].map((el) => el.textContent.trim()),
+    ['Close Album'],
   );
   overlay.querySelector('[data-action="next"]').click();
   assert.equal(overlay.querySelector('.photo-modal-counter').textContent, '2 / 3');
@@ -232,11 +252,11 @@ test('editing, storage, photos and self-contained archives survive the refactor'
   assert.equal(scripted.window.location.hash, '');
   assert.equal(scrollCalls.length, 0);
   const close = overlay.querySelector('[data-action="close"]');
-  close.focus();
+  overlay.querySelector('.photo-modal-actions [data-action="close"]').focus();
   close.dispatchEvent(
     new scripted.window.KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }),
   );
-  assert.equal(sd.activeElement, overlay.querySelector('[data-action="previous"]'));
+  assert.equal(sd.activeElement, close);
   sd.dispatchEvent(new scripted.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   assert.equal(overlay.classList.contains('open'), false);
   assert.equal(sd.querySelector('.wrap').inert, undefined);
@@ -244,6 +264,45 @@ test('editing, storage, photos and self-contained archives survive the refactor'
   assert.deepEqual(scrollCalls, [240]);
   assert.equal(sd.activeElement, trigger);
   assert.equal(overlay.querySelectorAll('input,textarea').length, 0);
+  for (const selector of [
+    '.hero',
+    '.panel',
+    '.day-card',
+    '.photo-modal-dialog',
+    '.photo-modal-main',
+    '.photo-modal-actions',
+  ]) {
+    assert.equal(sd.querySelector(selector).className, document.querySelector(selector).className);
+  }
+  assert.equal(
+    sd.querySelector('#day-2027-06-02 .grid').innerHTML,
+    document.querySelector('#day-2027-06-02 .grid').innerHTML,
+  );
+  assert.equal(
+    sd.querySelectorAll(
+      '.day-editor,.save-note-btn,#editTripBtn,#editTravelBtn,input,textarea,select',
+    ).length,
+    3,
+  );
+  // Only static album radio navigation remains; there are no editable fields.
+  assert.equal(
+    sd.querySelectorAll(
+      'input:not([type="radio"]),textarea,select,.day-editor,.save-note-btn,#editTripBtn,#editTravelBtn',
+    ).length,
+    0,
+  );
+  const emptyAlbum = sd.querySelector('#day-2027-06-01 .day-album-btn');
+  emptyAlbum.click();
+  assert.equal(overlay.classList.contains('open'), true);
+  assert.equal(overlay.querySelector('.photo-modal-counter').textContent, '0 photos');
+  assert.equal(overlay.querySelector('.album-empty').classList.contains('hidden'), false);
+  assert.equal(sd.querySelector('#day-2027-06-01').classList.contains('open'), false);
+  overlay.querySelector('.photo-modal-actions [data-action="close"]').click();
+  assert.equal(overlay.classList.contains('open'), false);
+  sd.querySelector('#day-2027-06-01 .day-header').click();
+  assert.equal(sd.querySelector('#day-2027-06-01').classList.contains('open'), true);
+  sd.querySelector('.trip-title-row .heading-toggle').click();
+  assert.equal(sd.getElementById('tripOverviewBody').classList.contains('hidden'), false);
 
   const saved = Object.fromEntries(
     Object.keys(window.localStorage).map((key) => [key, window.localStorage.getItem(key)]),
