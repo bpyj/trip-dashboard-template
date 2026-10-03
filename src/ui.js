@@ -1,9 +1,47 @@
 // Shared, storage-free interactions. Archives embed these functions verbatim.
 export function createDisclosure(button, body, card = null) {
+  const document = body.ownerDocument;
+  const window = document.defaultView;
+  // One viewport control and one set of listeners for all sections.
+  let floating = document.tripDisclosures;
+  if (!floating) {
+    const control = document.createElement('button');
+    control.type = 'button';
+    control.className = 'btn secondary floating-collapse';
+    control.textContent = 'Collapse';
+    control.hidden = true;
+    document.body.append(control);
+    floating = document.tripDisclosures = {
+      sections: new Map(),
+      update() {
+        const sections = [...this.sections.values()];
+        const active = sections.find(({ button, body }) => {
+          const heading = button.getBoundingClientRect();
+          const content = body.getBoundingClientRect();
+          return (
+            body.isConnected &&
+            button.getAttribute('aria-expanded') === 'true' &&
+            heading.top < window.innerHeight &&
+            content.bottom > 0
+          );
+        });
+        control.hidden = !active || !!document.querySelector('.photo-modal.open');
+        if (active) {
+          control.setAttribute('aria-controls', active.body.id);
+          control.setAttribute('aria-label', 'Collapse ' + active.button.textContent.trim());
+        }
+        this.active = active;
+      },
+    };
+    control.addEventListener('click', () => floating.active?.collapse());
+    window.addEventListener('scroll', () => floating.update(), { passive: true });
+    window.addEventListener('resize', () => floating.update());
+  }
   const setExpanded = (expanded) => {
     if (card) card.classList.toggle('open', expanded);
     else body.classList.toggle('hidden', !expanded);
     button.setAttribute('aria-expanded', String(expanded));
+    floating.update();
   };
   button.addEventListener('click', () => {
     setExpanded(button.getAttribute('aria-expanded') !== 'true');
@@ -19,11 +57,14 @@ export function createDisclosure(button, body, card = null) {
   }
   collapse.setAttribute('aria-controls', body.id);
   collapse.setAttribute('aria-label', 'Collapse ' + button.textContent.trim());
-  collapse.addEventListener('click', () => {
+  const collapseSection = () => {
     setExpanded(false);
     button.focus({ preventScroll: true });
     button.scrollIntoView?.({ block: 'nearest', behavior: 'instant' });
-  });
+  };
+  collapse.addEventListener('click', collapseSection);
+  floating.sections.set(body.id, { button, body, collapse: collapseSection });
+  floating.update();
   return setExpanded;
 }
 
@@ -57,6 +98,7 @@ export function createAlbumDialog(modal, { previous, next, onClose }) {
     }
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
+    document.tripDisclosures?.update();
     closeButton.focus({ preventScroll: true });
   }
 
@@ -64,6 +106,7 @@ export function createAlbumDialog(modal, { previous, next, onClose }) {
     if (!modal.classList.contains('open')) return;
     modal.classList.remove('open');
     modal.setAttribute('aria-hidden', 'true');
+    document.tripDisclosures?.update();
     Object.assign(document.body.style, bodyStyle);
     if (page) page.inert = pageWasInert;
     window.scrollTo({ top: scrollPosition, left: 0, behavior: 'instant' });
