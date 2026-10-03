@@ -70,7 +70,7 @@ A GitHub repository stores the source code. A live trip link is created by publi
 
 ## Photos, archives and sharing
 
-Uploaded photos live in IndexedDB on the device/browser where they were added. Edited trip headings, travel information, days and notes use localStorage. Each trip’s ID creates a separate storage namespace. These records do not sync to GitHub, another device or another person opening the live site.
+Uploaded photos live in IndexedDB on the device/browser where they were added. In an album, **Set as Thumbnail** chooses the day’s cover photo. The choice survives reloads and new uploads, and appears in exported archives. If the selected photo is deleted, another available photo becomes the cover. Edited trip headings, travel information, days and notes use localStorage. Each trip’s ID creates a separate storage namespace. These records do not sync to GitHub, another device or another person opening the live site.
 
 **Export HTML Archive** includes photos as embedded image data and writes the day content directly into one HTML file. Someone you share that file with can see the saved photos and notes without access to your phone or the live site. The archive uses the same layout, day cards and photo overlay as the editable template, with all editing and uploading controls removed. In viewers that block scripts, native collapsible days and inline albums keep the content accessible. The archive is view-only and cannot be imported back into the editable app.
 
