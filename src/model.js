@@ -57,9 +57,7 @@ export function validateTripConfig(config) {
     throw new Error('Trip title and destination are required.');
   if (!Array.isArray(config.summary) || !Array.isArray(config.travel))
     throw new Error('Summary and travel must be arrays.');
-  for (const item of config.travel)
-    if (!Array.isArray(item.details)) throw new Error('Travel details must be arrays.');
-  return { ...config, days: validateDays(config.days) };
+  return { ...config, travel: validateTravel(config.travel), days: validateDays(config.days) };
 }
 
 export function validateTripInfo(info) {
@@ -97,6 +95,7 @@ export function validateTripInfo(info) {
 
 export function validateTravel(travel) {
   if (!Array.isArray(travel)) throw new Error('Travel information must be a list of sections.');
+  const ids = new Set();
   return travel.map((item) => {
     if (
       !item ||
@@ -106,9 +105,37 @@ export function validateTravel(travel) {
       item.details.some((detail) => typeof detail !== 'string')
     )
       throw new Error('Each travel section needs a title and a list of details.');
+    if (item.id != null) {
+      if (
+        typeof item.id !== 'string' ||
+        !/^[a-z0-9][a-z0-9-]{0,79}$/.test(item.id) ||
+        ids.has(item.id)
+      )
+        throw new Error('Travel section IDs must be unique lowercase words with optional hyphens.');
+      ids.add(item.id);
+    }
     return {
+      ...(item.id != null ? { id: item.id } : {}),
       title: item.title.trim(),
       details: item.details.map((detail) => detail.trim()).filter(Boolean),
     };
   });
+}
+
+// Add newly configured sections without replacing saved titles or details.
+export function mergeTravelSections(saved, defaults) {
+  const configured = validateTravel(defaults);
+  const sections = validateTravel(saved).map((item, index) => ({
+    ...item,
+    // Older templates stored sections in configuration order, without IDs.
+    ...(item.id == null && configured[index]?.id ? { id: configured[index].id } : {}),
+  }));
+  const ids = new Set(sections.map((item) => item.id).filter(Boolean));
+  for (const item of configured) {
+    const exists = item.id
+      ? ids.has(item.id)
+      : sections.some((section) => section.title === item.title);
+    if (!exists) sections.push(item);
+  }
+  return validateTravel(sections);
 }
