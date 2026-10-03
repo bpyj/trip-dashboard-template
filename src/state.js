@@ -18,7 +18,6 @@ export const photoModal = document.getElementById('photoModal');
 export const photoModalImage = document.getElementById('photoModalImage');
 export const photoModalMeta = document.getElementById('photoModalMeta');
 export const photoModalCounter = document.getElementById('photoModalCounter');
-export const photoModalClose = document.getElementById('photoModalClose');
 export const photoPrevBtn = document.getElementById('photoPrevBtn');
 export const photoNextBtn = document.getElementById('photoNextBtn');
 export const photoModalCaptionInput = document.getElementById('photoModalCaptionInput');
