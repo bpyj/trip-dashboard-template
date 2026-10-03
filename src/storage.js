@@ -4,6 +4,7 @@ export const TRAVEL_STORAGE_KEY = `trip:${config.id}:travel:v1`;
 export const DB_NAME = `trip:${config.id}:photos:v1`;
 export const DB_VERSION = 1;
 export const STORE_NAME = 'photos';
+export const COVERS_PREFIX = `trip:${config.id}:cover:v1:`;
 export const NOTES_PREFIX = `trip:${config.id}:notes:v1:`;
 
 import { validateDays, validateTripInfo, validateTravel } from './model.js';
@@ -90,6 +91,21 @@ export async function loadPhotosByDay(dayId) {
 
 export async function loadAllPhotos() {
   return getAllPhotos();
+}
+
+// The cover is a photo ID, not another copy of its image data.
+export function loadDayCoverId(dayId) {
+  try {
+    return JSON.parse(localStorage.getItem(`${COVERS_PREFIX}${dayId}`));
+  } catch {
+    return null;
+  }
+}
+
+export function saveDayCoverId(dayId, photoId) {
+  const key = `${COVERS_PREFIX}${dayId}`;
+  if (photoId == null) localStorage.removeItem(key);
+  else localStorage.setItem(key, JSON.stringify(photoId));
 }
 
 export function getNotesStorageKey(dayId) {
