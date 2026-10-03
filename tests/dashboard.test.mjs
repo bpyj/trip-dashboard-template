@@ -1080,3 +1080,38 @@ test('floating collapse follows the visible expanded section in dashboard and ar
   assert.ok(fallback.window.document.querySelector('details > summary'));
   assert.equal(live.errors.length, 0);
 });
+
+test('photo size labels are concise, accurate and shared with archives', async (t) => {
+  const live = openDashboard(new IDBFactory());
+  t.after(() => live.window.close());
+  await tick();
+  const app = live.window.TripTest;
+  const photo = {
+    dayId: config.days[0].date,
+    savedSize: 25 * 1024,
+    originalSize: 73 * 1024,
+    wasCompressed: true,
+    dataUrl: 'data:image/jpeg;base64,AQID',
+    createdAt: '2027-06-01T00:00:00Z',
+  };
+  assert.equal(app.formatPhotoMetadata(photo), 'Current 25 KB · Compressed from 73 KB');
+  assert.equal(
+    app.formatPhotoMetadata({ ...photo, savedSize: 76 * 1024 }),
+    'Current 76 KB · Original 73 KB',
+  );
+  assert.equal(app.formatPhotoMetadata({ ...photo, wasCompressed: false }), 'Current 25 KB');
+  await app.addPhotoRecord(photo);
+  await app.openDayAlbum(photo.dayId);
+  assert.equal(
+    live.window.document.querySelector('.photo-modal-meta').textContent,
+    app.formatPhotoMetadata(photo),
+  );
+  const html = app.buildArchiveHtml(await app.buildArchivePayload(), css);
+  const fallback = new JSDOM(html);
+  t.after(() => fallback.window.close());
+  assert.equal(
+    fallback.window.document.querySelector('figcaption').getAttribute('data-meta'),
+    app.formatPhotoMetadata(photo),
+  );
+  assert.equal(live.errors.length, 0);
+});
