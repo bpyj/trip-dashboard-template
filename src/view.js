@@ -67,10 +67,9 @@ export function renderDays() {
   <span class="day-kicker">${escapeHtml(day.label)}</span>
   <span class="day-date">${formatDayDate(day.date)}</span>
 </div>
-          <div class="day-title">${escapeHtml(day.title)}</div>
+          <div class="day-title-row"><div class="day-title">${escapeHtml(day.title)}</div><span class="toggle-icon" aria-hidden="true"></span></div>
           <div class="day-summary">${escapeHtml(day.summary)}</div>
         </div>
-        <span class="toggle-icon" aria-hidden="true">+</span>
       </button>
       <div class="day-album-actions">
         <div class="day-cover" id="day-cover-${escapeHtml(day.date)}"><span>No photo</span></div>
