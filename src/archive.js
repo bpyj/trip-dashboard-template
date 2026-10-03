@@ -12,11 +12,12 @@ import {
 import {
   formatDateTime,
   loadAllPhotos,
+  loadDayCoverId,
   loadEditableDayNote,
   normalizePhotoRecord,
   saveEditableDayNote,
 } from './storage.js';
-import { escapeHtml, slugifyFileName, formatBytes } from './utils.js';
+import { escapeHtml, slugifyFileName, formatBytes, chooseCoverPhoto } from './utils.js';
 
 // Portable HTML archives with native, independently collapsible albums.
 
@@ -44,6 +45,7 @@ export async function buildArchivePayload() {
     travel: tripTravel,
     dayNotes: buildDayNotesPayload(),
     photos: await loadAllPhotos(),
+    dayCovers: Object.fromEntries(tripDays.map((day) => [day.date, loadDayCoverId(day.date)])),
   };
 }
 
@@ -111,11 +113,12 @@ export function renderArchiveDay(day, payload) {
   summary.innerHTML = header.innerHTML;
   return `<article class="day-card archive-day-card" id="day-${escapeHtml(day.date)}">
     <details class="archive-day-details">${summary.outerHTML}${content.outerHTML}</details>
-    ${renderArchiveAlbum(day, photos)}
+    ${renderArchiveAlbum(day, photos, payload.dayCovers?.[day.date])}
   </article>`;
 }
 
-export function renderArchiveAlbum(day, photos) {
+export function renderArchiveAlbum(day, photos, coverId) {
+  const cover = chooseCoverPhoto(photos, coverId);
   photos.forEach((photo) => {
     if (!/^data:image\/(jpeg|jpg|png|webp|gif);base64,/i.test(photo.dataUrl))
       throw new Error('Unable to embed a saved photo.');
@@ -123,7 +126,7 @@ export function renderArchiveAlbum(day, photos) {
   const photoId = (index) => `archive-photo-${day.date}-${index}`;
   return `<details class="archive-album">
     <summary class="day-album-actions">
-      <span class="day-cover">${photos.length ? `<img src="${escapeHtml(photos[0].dataUrl)}" alt="Album cover for ${escapeHtml(day.label)}">` : '<span>No photo</span>'}</span>
+      <span class="day-cover">${photos.length ? `<img src="${escapeHtml(cover.dataUrl)}" alt="Album cover for ${escapeHtml(day.label)}">` : '<span>No photo</span>'}</span>
       <span class="btn secondary day-album-btn">Open Album</span>
     </summary>
     <div class="archive-album-body">
@@ -436,7 +439,7 @@ export function buildArchiveHtml(payload, css) {
   modal.setAttribute('aria-hidden', 'true');
   modal
     .querySelectorAll(
-      '#photoModalUploadBtn, #photoModalUploadInput, #photoModalDeleteBtn, #photoModalSaveBtn, #photoStatus, label',
+      '#photoModalThumbnailBtn, #photoModalUploadBtn, #photoModalUploadInput, #photoModalDeleteBtn, #photoModalSaveBtn, #photoStatus, label',
     )
     .forEach((el) => el.remove());
   const caption = document.createElement('div');
@@ -447,7 +450,6 @@ export function buildArchiveHtml(payload, css) {
     photoPrevBtn: 'previous',
     photoNextBtn: 'next',
     photoModalClose: 'close',
-    photoModalCloseBtn2: 'close',
   };
   for (const [id, action] of Object.entries(actions))
     modal.querySelector(`#${id}`).dataset.action = action;
