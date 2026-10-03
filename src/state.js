@@ -10,7 +10,6 @@ export const tripDays = loadEditableTripDays();
 export const daysContainer = document.getElementById('daysContainer');
 export const tripTitleEl = document.getElementById('tripTitle');
 export const tripSubtitleEl = document.getElementById('tripSubtitle');
-export const archiveBanner = document.getElementById('archiveBanner');
 
 export const MAX_DIMENSION = 900;
 export const COMPRESS_TARGET_BYTES = 600 * 1024;
@@ -25,7 +24,7 @@ export const photoNextBtn = document.getElementById('photoNextBtn');
 export const photoModalCaptionInput = document.getElementById('photoModalCaptionInput');
 export const photoModalSaveBtn = document.getElementById('photoModalSaveBtn');
 export const photoModalDeleteBtn = document.getElementById('photoModalDeleteBtn');
-export const photoModalCloseBtn2 = document.getElementById('photoModalCloseBtn2');
+export const photoModalThumbnailBtn = document.getElementById('photoModalThumbnailBtn');
 
 export const exportHtmlBtn = document.getElementById('exportHtmlBtn');
 export const addDayBtn = document.getElementById('addDayBtn');
