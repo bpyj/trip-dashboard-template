@@ -9,7 +9,7 @@ export const NOTES_PREFIX = `trip:${config.id}:notes:v1:`;
 
 import { validateDays, validateTripInfo, validateTravel, mergeTravelSections } from './model.js';
 import config from '../trip.config.js';
-import { cloneTripDays } from './utils.js';
+import { cloneTripDays, formatBytes } from './utils.js';
 
 // Local notes and transactional IndexedDB photo persistence.
 
@@ -273,4 +273,8 @@ export function formatDateTime(value) {
   } catch {
     return value;
   }
+}
+
+export function formatPhotoMetadata(photo) {
+  return `${formatDateTime(photo.createdAt)} · Saved ${formatBytes(photo.savedSize || 0)}${photo.wasCompressed ? ` · Compressed from ${formatBytes(photo.originalSize || 0)}` : ''}`;
 }
