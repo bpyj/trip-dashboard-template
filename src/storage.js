@@ -278,7 +278,7 @@ export function formatDateTime(value) {
 export function formatPhotoMetadata(photo) {
   const currentSize = Number(photo.savedSize) || 0;
   const originalSize = Number(photo.originalSize) || 0;
-  const current = `Current ${formatBytes(currentSize)}`;
+  const current = `Uploaded ${formatDateTime(photo.createdAt)} · Current ${formatBytes(currentSize)}`;
   if (!originalSize || !photo.wasCompressed) return current;
   const label = currentSize < originalSize ? 'Compressed from' : 'Original';
   return `${current} · ${label} ${formatBytes(originalSize)}`;
