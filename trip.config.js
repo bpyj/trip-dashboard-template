@@ -16,8 +16,45 @@ const config = {
     { label: 'Destination time zone', value: 'Asia/Tokyo' },
   ],
   travel: [
-    { title: 'Flights and transfers', details: ['Add flight times and airport transfers here.'] },
-    { title: 'Accommodation', details: ['Add hotel names, addresses and check-in times here.'] },
+    {
+      id: 'flights',
+      title: 'Flights and transfers',
+      details: ['Add flight times and airport transfers here.'],
+    },
+    {
+      id: 'accommodation',
+      title: 'Accommodation',
+      details: ['Add hotel names, addresses and check-in times here.'],
+    },
+    {
+      id: 'weather',
+      title: 'Weather',
+      details: ['Add expected temperatures, rain outlook and the forecast date.'],
+    },
+    {
+      id: 'currency',
+      title: 'Currency rate',
+      details: ['Add the destination currency, conversion rate and the date checked.'],
+    },
+    {
+      id: 'time-difference',
+      title: 'Time difference',
+      details: [
+        'Add the time difference between home and destination, including daylight saving changes.',
+      ],
+    },
+    {
+      id: 'insurance',
+      title: 'Insurance policy',
+      details: ['Add the insurer, policy number, insured travellers and assistance hotline.'],
+    },
+    {
+      id: 'emergency',
+      title: 'Emergency phone numbers',
+      details: [
+        'Add police, ambulance and fire numbers for the destination, plus your embassy and an emergency contact.',
+      ],
+    },
   ],
   days: [
     {
