@@ -283,16 +283,7 @@ body {
 .backup-panel {
   margin-top: 14px;
 }
-.archive-banner {
-  margin-top: 12px;
-  border: 1px solid #bfdbfe;
-  background: #eff6ff;
-  color: #1e40af;
-  border-radius: 12px;
-  padding: 12px;
-  font-size: 0.92rem;
-  font-weight: 700;
-}
+
 .footer-note {
   color: var(--muted);
   font-size: 0.875rem;
