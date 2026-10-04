@@ -45,19 +45,29 @@ export function loadCloudSyncState() {
   return normalizeState(null);
 }
 
+function dispatchStateChange() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new window.Event(CLOUD_SYNC_STATE_EVENT));
+  }
+}
+
 function saveCloudSyncState(state) {
   const normalized = normalizeState(state);
   localStorage.setItem(CLOUD_SYNC_STATE_KEY, JSON.stringify(normalized));
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new Event(CLOUD_SYNC_STATE_EVENT));
-  }
+  dispatchStateChange();
   return normalized;
 }
 
 export function markLocalChangesPending() {
-  const current = loadCloudSyncState();
-  if (current.dirty) return current;
-  return saveCloudSyncState({ ...current, dirty: true });
+  const next = { ...loadCloudSyncState(), dirty: true };
+  try {
+    return saveCloudSyncState(next);
+  } catch (error) {
+    // Sync metadata must never make an otherwise successful local edit fail.
+    console.warn('Unable to persist cloud sync status:', error);
+    dispatchStateChange();
+    return normalizeState(next);
+  }
 }
 
 export function markCloudSyncCurrent({ revision, lastPushed, lastPulled } = {}) {
