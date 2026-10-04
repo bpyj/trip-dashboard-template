@@ -148,37 +148,117 @@ test('Pull button shows progress, blocks repeat actions and reloads after restor
   assert.match(status.textContent, /Cloud trip restored/i);
 });
 
-test('local unsynced changes disable Pull and are not overwritten before confirmation exists', async (t) => {
+test('dirty Pull requires explicit Replace & Pull and Cancel preserves local edits', async (t) => {
   const dom = installBrowser(t);
+  localStorage.clear();
+  initCloudSyncState();
+
+  const cloud = createCloudSnapshot('CLOUD REPLACEMENT', 'cloud replacement note', 2);
+  saveTripInfo(validTripInfo('CLEAN LOCAL COPY'));
+  markCloudSyncCurrent({ revision: 1 });
+  saveTripInfo(validTripInfo('UNSYNCED LOCAL EDIT'));
+
+  const adapter = createLoadAdapter(cloud, { delay: 20 });
+  setCloudStorageAdapter(adapter);
+  let reloads = 0;
+  initCloudSyncControls({ reload: () => (reloads += 1) });
+
+  const pullButton = dom.window.document.getElementById('pullCloudBtn');
+  const warning = dom.window.document.getElementById('cloudPullWarning');
+  const cancelButton = dom.window.document.getElementById('cancelCloudPullBtn');
+  const confirmButton = dom.window.document.getElementById('confirmCloudPullBtn');
+  const status = dom.window.document.getElementById('cloudSyncStatus');
+
+  assert.equal(loadCloudSyncState().dirty, true);
+  assert.equal(pullButton.disabled, false);
+  assert.equal(warning.classList.contains('hidden'), true);
+
+  pullButton.click();
+  assert.equal(warning.classList.contains('hidden'), false);
+  assert.equal(dom.window.document.activeElement, cancelButton);
+  assert.equal(adapter.loads, 0);
+  assert.equal(loadTripInfo().title, 'UNSYNCED LOCAL EDIT');
+  assert.match(status.textContent, /Confirm before Pull replaces them/i);
+
+  cancelButton.click();
+  assert.equal(warning.classList.contains('hidden'), true);
+  assert.equal(dom.window.document.activeElement, pullButton);
+  assert.equal(adapter.loads, 0);
+  assert.equal(loadTripInfo().title, 'UNSYNCED LOCAL EDIT');
+  assert.equal(loadCloudSyncState().dirty, true);
+  assert.match(status.textContent, /Local changes not pushed/i);
+
+  pullButton.click();
+  confirmButton.click();
+  assert.equal(warning.classList.contains('hidden'), true);
+  assert.equal(pullButton.disabled, true);
+  assert.match(status.textContent, /Pulling cloud trip to this device/i);
+
+  await wait(45);
+  assert.equal(adapter.loads, 1);
+  assert.equal(reloads, 1);
+  assert.equal(loadTripInfo().title, 'CLOUD REPLACEMENT');
+  assert.equal(loadEditableDayNote(config.days[0].date), 'cloud replacement note');
+  assert.equal(loadCloudSyncState().dirty, false);
+  assert.equal(loadCloudSyncState().revision, 2);
+});
+
+test('dirty Pull remains blocked at the data layer unless replacement is explicitly allowed', async (t) => {
+  installBrowser(t);
   localStorage.clear();
   initCloudSyncState();
 
   const cloud = createCloudSnapshot('CLOUD MUST WAIT', 'cloud waits', 2);
   saveTripInfo(validTripInfo('CLEAN LOCAL COPY'));
   markCloudSyncCurrent({ revision: 1 });
+  saveTripInfo(validTripInfo('UNSYNCED LOCAL EDIT'));
   const adapter = createLoadAdapter(cloud);
   setCloudStorageAdapter(adapter);
-  initCloudSyncControls();
-
-  const pullButton = dom.window.document.getElementById('pullCloudBtn');
-  assert.equal(pullButton.disabled, false);
-
-  saveTripInfo(validTripInfo('UNSYNCED LOCAL EDIT'));
-  assert.equal(loadCloudSyncState().dirty, true);
-  assert.equal(pullButton.disabled, true);
 
   await assert.rejects(() => pullCloudTripToLocal(), /blocked to protect this device/i);
   assert.equal(adapter.loads, 0);
   assert.equal(loadTripInfo().title, 'UNSYNCED LOCAL EDIT');
   assert.equal(loadCloudSyncState().dirty, true);
+
+  await pullCloudTripToLocal({ allowDirty: true, now: '2026-10-04T09:36:00.000Z' });
+  assert.equal(adapter.loads, 1);
+  assert.equal(loadTripInfo().title, 'CLOUD MUST WAIT');
+  assert.equal(loadCloudSyncState().dirty, false);
+  assert.equal(loadCloudSyncState().revision, 2);
 });
 
-test('failed Pull preserves local data and sync metadata and remains retryable', async (t) => {
+test('Escape closes the destructive Pull warning without loading cloud data', (t) => {
   const dom = installBrowser(t);
   localStorage.clear();
   initCloudSyncState();
-  saveTripInfo(validTripInfo('LOCAL COPY MUST SURVIVE PULL FAILURE'));
+
+  const cloud = createCloudSnapshot('CLOUD ESCAPE TEST', 'cloud escape note', 2);
+  saveTripInfo(validTripInfo('CLEAN LOCAL COPY'));
+  markCloudSyncCurrent({ revision: 1 });
+  saveTripInfo(validTripInfo('LOCAL ESCAPE TEST'));
+  const adapter = createLoadAdapter(cloud);
+  setCloudStorageAdapter(adapter);
+  initCloudSyncControls();
+
+  const pullButton = dom.window.document.getElementById('pullCloudBtn');
+  const warning = dom.window.document.getElementById('cloudPullWarning');
+  pullButton.click();
+  assert.equal(warning.classList.contains('hidden'), false);
+
+  warning.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  assert.equal(warning.classList.contains('hidden'), true);
+  assert.equal(dom.window.document.activeElement, pullButton);
+  assert.equal(adapter.loads, 0);
+  assert.equal(loadTripInfo().title, 'LOCAL ESCAPE TEST');
+});
+
+test('failed confirmed Pull preserves dirty local data and remains retryable', async (t) => {
+  const dom = installBrowser(t);
+  localStorage.clear();
+  initCloudSyncState();
+  saveTripInfo(validTripInfo('CLEAN LOCAL COPY'));
   markCloudSyncCurrent({ revision: 4, lastPulled: '2026-10-04T09:10:00.000Z' });
+  saveTripInfo(validTripInfo('LOCAL COPY MUST SURVIVE PULL FAILURE'));
 
   const failure = new Error('temporary pull outage');
   setCloudStorageAdapter(createLoadAdapter(null, { failure }));
@@ -188,8 +268,11 @@ test('failed Pull preserves local data and sync metadata and remains retryable',
   const beforeInfo = loadTripInfo();
   const beforeState = loadCloudSyncState();
   const pullButton = dom.window.document.getElementById('pullCloudBtn');
+  const confirmButton = dom.window.document.getElementById('confirmCloudPullBtn');
   const status = dom.window.document.getElementById('cloudSyncStatus');
+
   pullButton.click();
+  confirmButton.click();
   await wait();
 
   assert.deepEqual(loadTripInfo(), beforeInfo);
