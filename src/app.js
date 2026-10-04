@@ -5,6 +5,7 @@ import { buildDayNotesPayload, exportHtmlArchive, revokeCurrentExportUrl } from 
 import { addNewDay, getDayIndex } from './days.js';
 import { initPhotoAlbum } from './photos.js';
 import { initCloudSyncState } from './cloud-state.js';
+import { initCloudSyncControls } from './cloud-sync.js';
 import {
   addDayBtn,
   clearExportLinkBtn,
@@ -36,6 +37,7 @@ window.addEventListener('beforeunload', () => {
 
 (async function init() {
   initCloudSyncState();
+  initCloudSyncControls();
   initPhotoAlbum();
   renderTripInfo();
   initOverviewPanels();
