@@ -25,13 +25,16 @@ const embedded = template
   );
 const tick = () => new Promise((resolve) => setTimeout(resolve, 30));
 
-test('cloud Push/Pull controls are accessible, disabled before connection and mobile-safe', () => {
+test('cloud Push/Pull controls and destructive warning are accessible and mobile-safe', () => {
   const dom = new JSDOM(template);
   const { document } = dom.window;
   const panel = document.getElementById('cloudSyncPanel');
   const pull = document.getElementById('pullCloudBtn');
   const push = document.getElementById('pushCloudBtn');
   const status = document.getElementById('cloudSyncStatus');
+  const warning = document.getElementById('cloudPullWarning');
+  const cancel = document.getElementById('cancelCloudPullBtn');
+  const confirm = document.getElementById('confirmCloudPullBtn');
 
   assert.ok(panel);
   assert.equal(panel.closest('[data-editable-only]')?.classList.contains('backup-panel'), true);
@@ -47,13 +50,21 @@ test('cloud Push/Pull controls are accessible, disabled before connection and mo
   assert.ok(document.getElementById('cloudLastPushed'));
   assert.ok(document.getElementById('cloudLastPulled'));
 
-  // The controls reuse the existing responsive action layout and 44px tap target.
+  assert.ok(warning);
+  assert.equal(warning.getAttribute('role'), 'alertdialog');
+  assert.equal(warning.getAttribute('aria-labelledby'), 'cloudPullWarningHeading');
+  assert.equal(warning.getAttribute('aria-describedby'), 'cloudPullWarningText');
+  assert.equal(warning.classList.contains('hidden'), true);
+  assert.match(cancel.textContent, /Cancel/);
+  assert.match(confirm.textContent, /Replace.*Pull/s);
+
+  // Cloud actions and the inline confirmation reuse wrapping layouts and 44px tap targets.
   assert.match(css, /\.actions\s*\{[^}]*flex-wrap:\s*wrap;/s);
   assert.match(css, /\.btn\s*\{[^}]*min-height:\s*44px;/s);
   dom.window.close();
 });
 
-test('real read-only archive output removes all cloud sync controls', async (t) => {
+test('real read-only archive output removes all cloud sync and warning controls', async (t) => {
   const errors = [];
   const virtualConsole = new VirtualConsole();
   virtualConsole.on('jsdomError', (error) => errors.push(error));
@@ -80,6 +91,9 @@ test('real read-only archive output removes all cloud sync controls', async (t) 
   assert.equal(document.getElementById('pullCloudBtn'), null);
   assert.equal(document.getElementById('pushCloudBtn'), null);
   assert.equal(document.getElementById('cloudSyncStatus'), null);
+  assert.equal(document.getElementById('cloudPullWarning'), null);
+  assert.equal(document.getElementById('cancelCloudPullBtn'), null);
+  assert.equal(document.getElementById('confirmCloudPullBtn'), null);
   assert.equal(document.querySelectorAll('[data-editable-only]').length, 0);
   assert.equal(errors.length, 0, errors.map((error) => error.message).join('\n'));
 });
