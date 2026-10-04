@@ -127,7 +127,10 @@ test('all snapshot text save paths mark the working copy dirty', (t) => {
 test('pre-existing local text data without sync metadata is treated as not yet pushed', (t) => {
   installBrowser(t);
   localStorage.clear();
-  localStorage.setItem(`trip:${config.id}:info:v1`, JSON.stringify(validTripInfo('Older local trip')));
+  localStorage.setItem(
+    `trip:${config.id}:info:v1`,
+    JSON.stringify(validTripInfo('Older local trip')),
+  );
 
   assert.equal(localStorage.getItem(CLOUD_SYNC_STATE_KEY), null);
   assert.equal(loadCloudSyncState().dirty, true);
