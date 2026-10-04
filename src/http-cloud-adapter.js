@@ -20,7 +20,8 @@ async function readJsonResponse(response) {
 }
 
 function buildError(response, payload) {
-  const message = payload?.error || payload?.message || `Cloud API request failed (${response.status}).`;
+  const message =
+    payload?.error || payload?.message || `Cloud API request failed (${response.status}).`;
   const error = new Error(message);
   error.status = response.status;
   return error;
