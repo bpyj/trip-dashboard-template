@@ -180,7 +180,7 @@
             </p>
             <div class="actions">
               <button class="btn secondary" id="cancelCloudPullBtn" type="button">Cancel</button>
-              <button class="btn danger" id="confirmCloudPullBtn" type="button">
+              <button class="btn" id="confirmCloudPullBtn" type="button">
                 Replace &amp; Pull
               </button>
             </div>
@@ -277,39 +277,42 @@
             </button>
             <input
               class="photo-input"
-              id="photoInput"
+              id="photoModalUploadInput"
+              data-editable-only
               type="file"
               accept="image/*"
               multiple
-              data-editable-only
+              aria-label="Upload album photos"
             />
-            <button class="photo-modal-btn" id="photoModalSaveBtn" data-editable-only type="button">
-              Save Caption
-            </button>
             <button
               class="photo-modal-btn danger"
+              type="button"
               id="photoModalDeleteBtn"
               data-editable-only
-              type="button"
             >
               Delete Photo
             </button>
-            <button class="photo-modal-btn ghost" id="photoModalCloseBtn" type="button">
+            <button
+              class="photo-modal-btn primary"
+              type="button"
+              id="photoModalSaveBtn"
+              data-editable-only
+            >
+              Save Caption
+            </button>
+            <button
+              class="photo-modal-btn ghost"
+              type="button"
+              id="photoModalClose"
+              data-action="close"
+            >
               Close Album
             </button>
           </div>
+          <div id="photoStatus" data-editable-only role="status"></div>
         </div>
       </div>
     </div>
-    <button
-      class="floating-collapse hidden"
-      id="floatingCollapseBtn"
-      type="button"
-      aria-label="Collapse current section"
-    >
-      ↑
-    </button>
-
     <script id="appScript" type="module" src="src/app.js"></script>
   </body>
 </html>
