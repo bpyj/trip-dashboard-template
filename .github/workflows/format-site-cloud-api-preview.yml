@@ -1,0 +1,24 @@
+name: Format Sites cloud API preview
+
+on:
+  push:
+    branches:
+      - feature/cloud-push-pull
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prettier --write src/site-cloud-api.js tests/site-cloud-api.test.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: formatted-site-cloud-api
+          path: |
+            src/site-cloud-api.js
+            tests/site-cloud-api.test.mjs
