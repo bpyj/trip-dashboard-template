@@ -10,8 +10,8 @@ import {
   loadTripInfo,
 } from './storage.js';
 
-// Versioned text-data snapshot used by future cloud Push/Pull adapters.
-// Photos and day-cover selections are intentionally excluded from version 1.
+// Version 1 remains the text-only adapter contract. Version 2 adds immutable
+// cloud photo references and cover selections, without embedding image bytes.
 export const TRIP_SNAPSHOT_FORMAT = 'trip-dashboard-snapshot';
 export const TRIP_SNAPSHOT_VERSION = 1;
 
@@ -70,7 +70,7 @@ export function validateTripSnapshot(snapshot) {
   if (!isPlainObject(snapshot)) throw new Error('Trip snapshot must be an object.');
   if (snapshot.format !== TRIP_SNAPSHOT_FORMAT)
     throw new Error('This is not a Trip Dashboard snapshot.');
-  if (snapshot.version !== TRIP_SNAPSHOT_VERSION)
+  if (![1, 2].includes(snapshot.version))
     throw new Error(`Unsupported trip snapshot version: ${snapshot.version}.`);
   if (snapshot.tripId !== config.id)
     throw new Error(`Snapshot belongs to a different trip: ${snapshot.tripId || 'unknown'}.`);
@@ -79,7 +79,8 @@ export function validateTripSnapshot(snapshot) {
 
   return {
     format: TRIP_SNAPSHOT_FORMAT,
-    version: TRIP_SNAPSHOT_VERSION,
+    version: snapshot.version,
+    ...(snapshot.version === 2 ? validatePhotoManifest(snapshot) : {}),
     tripId: config.id,
     revision: snapshot.revision,
     createdAt: validateCreatedAt(snapshot.createdAt),
@@ -153,4 +154,62 @@ export function restoreLocalTripSnapshot(snapshot) {
   }
 
   return validated;
+}
+
+function validatePhotoManifest(snapshot) {
+  if (!Array.isArray(snapshot.photos) || !isPlainObject(snapshot.covers))
+    throw new Error('Invalid photo manifest.');
+  const ids = new Set();
+  const photos = snapshot.photos.map((photo) => {
+    if (
+      !isPlainObject(photo) ||
+      !Number.isSafeInteger(photo.id) ||
+      photo.id < 1 ||
+      ids.has(photo.id)
+    )
+      throw new Error('Invalid or duplicate photo ID.');
+    ids.add(photo.id);
+    if (
+      typeof photo.dayId !== 'string' ||
+      !photo.dayId ||
+      !/^[a-f0-9]{64}$/.test(photo.blobId || '')
+    )
+      throw new Error('Invalid photo reference.');
+    if (
+      !['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(photo.type) ||
+      !Number.isSafeInteger(photo.savedSize) ||
+      photo.savedSize < 1 ||
+      photo.savedSize > 10 * 1024 * 1024
+    )
+      throw new Error('Invalid photo size or format.');
+    for (const field of ['name', 'caption', 'originalType'])
+      if (typeof photo[field] !== 'string') throw new Error('Invalid photo metadata.');
+    if (
+      !Number.isFinite(photo.originalSize) ||
+      photo.originalSize < 0 ||
+      typeof photo.wasCompressed !== 'boolean'
+    )
+      throw new Error('Invalid photo metadata.');
+    return {
+      id: photo.id,
+      dayId: validateSnapshotDate(photo.dayId),
+      blobId: photo.blobId,
+      type: photo.type,
+      savedSize: photo.savedSize,
+      name: photo.name,
+      caption: photo.caption,
+      originalType: photo.originalType,
+      originalSize: photo.originalSize,
+      wasCompressed: photo.wasCompressed,
+      createdAt: validateCreatedAt(photo.createdAt),
+    };
+  });
+  const covers = Object.fromEntries(
+    Object.entries(snapshot.covers).map(([dayId, id]) => {
+      if (!photos.some((photo) => photo.id === id && photo.dayId === dayId))
+        throw new Error('Cover must reference a photo in its day.');
+      return [dayId, id];
+    }),
+  );
+  return { photos, covers };
 }

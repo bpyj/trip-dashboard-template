@@ -52,7 +52,7 @@ export async function handleTripSyncRequest({
   if (!(request instanceof Request)) throw new Error('A Request is required.');
   if (typeof tripId !== 'string' || !tripId) return json({ error: 'Trip ID is required.' }, 400);
 
-  await ensureTripSyncSchema(db);
+  if (!db?.prepare) throw new Error('D1 database binding is unavailable.');
 
   if (request.method === 'GET') {
     const row = await db

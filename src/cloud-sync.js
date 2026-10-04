@@ -1,11 +1,22 @@
 import {
   CLOUD_SYNC_STATE_EVENT,
+  getLocalChangeSequence,
+  markLocalChangesPending,
   loadCloudSyncState,
   markCloudSyncCurrent,
   renderCloudSyncState,
 } from './cloud-state.js';
 import { hasCloudStorageAdapter, loadCloudTrip, saveCloudTrip } from './cloud-storage.js';
 import { createLocalTripSnapshot, restoreLocalTripSnapshot } from './snapshot.js';
+import {
+  hasCloudPhotoStorage,
+  attachCloudPhotos,
+  downloadCloudPhotos,
+  restoreTripWithPhotos,
+  detectUnsyncedLegacyPhotos,
+  markPhotoSyncSupported,
+} from './cloud-photos.js';
+import { loadAllPhotos } from './storage.js';
 
 // User-triggered cloud sync orchestration. Local browser storage remains the
 // working copy; cloud writes happen only when Push is explicitly requested.
@@ -76,7 +87,11 @@ export async function pushLocalTripToCloud({ now = new Date().toISOString() } = 
   const before = loadCloudSyncState();
   const expectedRevision = before.revision;
   const nextRevision = (expectedRevision ?? 0) + 1;
-  const snapshot = createLocalTripSnapshot({ revision: nextRevision, createdAt: now });
+  const sequence = getLocalChangeSequence();
+  let snapshot = createLocalTripSnapshot({ revision: nextRevision, createdAt: now });
+  if (hasCloudPhotoStorage()) snapshot = await attachCloudPhotos(snapshot);
+  if (getLocalChangeSequence() !== sequence)
+    throw new Error('Local changes occurred during Push. Please push again.');
   const saved = await saveCloudTrip(snapshot, { expectedRevision });
 
   if (saved.revision !== nextRevision) {
@@ -85,7 +100,9 @@ export async function pushLocalTripToCloud({ now = new Date().toISOString() } = 
     );
   }
 
+  if (saved.version === 2) markPhotoSyncSupported();
   markCloudSyncCurrent({ revision: saved.revision, lastPushed: now });
+  if (getLocalChangeSequence() !== sequence) markLocalChangesPending();
   return saved;
 }
 
@@ -95,16 +112,35 @@ export async function pullCloudTripToLocal({
 } = {}) {
   if (!hasCloudStorageAdapter()) throw new Error('Cloud storage is not connected.');
 
+  if (hasCloudPhotoStorage() && (await detectUnsyncedLegacyPhotos())) markLocalChangesPending();
   const before = loadCloudSyncState();
   if (before.dirty && !allowDirty) {
     throw new Error('Local changes have not been pushed. Pull is blocked to protect this device.');
   }
 
+  const sequence = getLocalChangeSequence();
   const snapshot = await loadCloudTrip();
   if (snapshot == null) return null;
 
-  const restored = restoreLocalTripSnapshot(snapshot);
+  let restored;
+  if (snapshot.version === 2) {
+    if (!hasCloudPhotoStorage()) throw new Error('Photo storage is not connected.');
+    const records = await downloadCloudPhotos(snapshot);
+    if (getLocalChangeSequence() !== sequence)
+      throw new Error('Local changes occurred during Pull. Please try again.');
+    restored = await restoreTripWithPhotos(snapshot, records, () => {
+      if (getLocalChangeSequence() !== sequence)
+        throw new Error('Local changes occurred during Pull. Please try again.');
+    });
+  } else {
+    if (getLocalChangeSequence() !== sequence)
+      throw new Error('Local changes occurred during Pull. Please try again.');
+    restored = restoreLocalTripSnapshot(snapshot);
+  }
+  if (restored.version === 2) markPhotoSyncSupported();
   markCloudSyncCurrent({ revision: restored.revision, lastPulled: now });
+  if (restored.version === 1 && hasCloudPhotoStorage() && (await loadAllPhotos()).length)
+    markLocalChangesPending();
   return restored;
 }
 
@@ -144,6 +180,13 @@ async function runPull({ allowDirty = false, reload }) {
 export function initCloudSyncControls({ reload = () => window.location.reload() } = {}) {
   const { pull, push, warning, cancelPull, confirmPull } = getControls();
   refreshCloudSyncControls();
+  if (hasCloudStorageAdapter() && hasCloudPhotoStorage()) {
+    void detectUnsyncedLegacyPhotos()
+      .then((pending) => {
+        if (pending) markLocalChangesPending();
+      })
+      .catch((error) => console.warn('Unable to check local photos:', error));
+  }
 
   if (typeof window !== 'undefined' && window.datasetCloudSyncStateListener !== true) {
     window.datasetCloudSyncStateListener = true;

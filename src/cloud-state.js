@@ -58,7 +58,19 @@ function saveCloudSyncState(state) {
   return normalized;
 }
 
+let localChangeSequence = 0;
+const LOCAL_CHANGE_TOKEN_KEY = `trip:${config.id}:local-change-token:v1`;
+export function getLocalChangeSequence() {
+  return `${localChangeSequence}:${localStorage.getItem(LOCAL_CHANGE_TOKEN_KEY) || ''}`;
+}
+
 export function markLocalChangesPending() {
+  localChangeSequence += 1;
+  try {
+    localStorage.setItem(LOCAL_CHANGE_TOKEN_KEY, globalThis.crypto.randomUUID());
+  } catch {
+    // The in-memory sequence still protects edits in this tab.
+  }
   const next = { ...loadCloudSyncState(), dirty: true };
   try {
     return saveCloudSyncState(next);

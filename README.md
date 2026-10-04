@@ -76,7 +76,7 @@ Keep each section’s `id` stable when changing its title. Newly configured sect
 
 ## Photos, archives and sharing
 
-Uploaded photos live in IndexedDB on the device/browser where they were added. In an album, **Set as Thumbnail** chooses the day’s cover photo. The choice survives reloads and new uploads, and appears in exported archives. If the selected photo is deleted, another available photo becomes the cover. Edited trip headings, travel information, days and notes use localStorage. Each trip’s ID creates a separate storage namespace. These records do not sync to GitHub, another device or another person opening the live site.
+Uploaded photos live in IndexedDB on the device/browser where they were added. In an album, **Set as Thumbnail** chooses the day’s cover photo. The choice survives reloads and new uploads, and appears in exported archives. If the selected photo is deleted, another available photo becomes the cover. Edited trip headings, travel information, days and notes use localStorage. Each trip’s ID creates a separate storage namespace. Static builds keep these records on that device. The optional cloud build adds manual Push/Pull for text, photos, captions and chosen thumbnails; data does not sync to GitHub.
 
 **Export HTML Archive** includes photos as embedded image data and writes the day content directly into one HTML file. Someone you share that file with can see the saved photos and notes without access to your phone or the live site. The archive uses the same layout, day cards and photo overlay as the editable template, with all editing and uploading controls removed. In viewers that block scripts, native collapsible days and inline albums keep the content accessible. The archive is view-only and cannot be imported back into the editable app.
 
@@ -117,3 +117,21 @@ npm run build
 ```
 
 Tests cover invalid configuration, storage isolation, day editing, unsaved notes, inert HTML-like input, photo CRUD/captions, reload persistence, archive content with scripts blocked, collapsed details and native album navigation without hash changes.
+
+## Optional cloud hosting
+
+The static build remains dependency-free at runtime and disconnected from cloud storage. `npm run build:site` creates an optional Sites Worker at `dist/server/index.js`. It automatically connects the existing Push/Pull controls to same-origin `/api/trip-sync` and `/api/trip-photos` endpoints.
+
+For each personalised Site, register a new Site and retain its assigned project ID in `.openai/hosting.json`. Use the bindings shown in `.openai/hosting.example.json`: `DB` for D1 snapshots and `PHOTOS` for R2 images. Do not copy another trip's Site ID. Publish the Worker output with the included schema-only `drizzle/` migrations; migrations own table creation. Keep the Site private unless you deliberately change its audience. Plain static hosting such as GitHub Pages does not run the cloud API.
+
+Push uploads image bytes before committing the revision-protected master snapshot. Pull downloads and checks every image before replacing this device's saved content. Confirm Replace & Pull only when you intend to discard unpushed local changes; export an archive first if needed. Synchronization replaces one master snapshot; it does not merge concurrent edits. Stale writes are rejected.
+
+Version 1 text-only snapshots remain readable and preserve existing local photos. Version 2 includes photo references, captions, ordering timestamps, IDs and selected thumbnails. Existing localStorage keys and IndexedDB schema are preserved. Notes and photos outside the current itinerary are retained. JPEG, PNG, WebP and GIF images up to 10 MiB per stored image are supported; older image/jpg data URLs are normalized to JPEG. Unreferenced R2 images are retained until safe cleanup is implemented.
+
+Photos downloaded by Pull are available locally and embedded in self-contained archives. Archive style and navigation are shared with the editable dashboard; editing and cloud controls are removed. Native expandable albums remain usable when scripts are blocked. Actual viewer support varies.
+
+## Verification and limits
+
+The automated suite covers text and photo transfer, captions, covers, stale revisions, other-tab edits during transfer, legacy records, missing/corrupt images, handled storage failures, unrelated trip isolation, offline multi-photo archives and script-blocked viewing. The isolated temporary deployment passed real D1/R2 persistence checks. Phone/laptop photo transfer, retained captions/thumbnails, reopening persistence, offline archives and phone navigation were confirmed by user testing.
+
+IndexedDB and localStorage are separate browser stores; abrupt browser/process-crash recovery between writes is not guaranteed to be atomic and remains unverified. Concurrent edits are not merged. Cloud accounts, quotas and hosting access controls remain the responsibility of each personalised Site.

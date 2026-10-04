@@ -27,13 +27,41 @@ function buildError(response, payload) {
   return error;
 }
 
-export function createHttpCloudStorageAdapter({ baseUrl, fetchImpl = globalThis.fetch } = {}) {
+export function createHttpCloudStorageAdapter({
+  baseUrl,
+  photoBaseUrl,
+  fetchImpl = globalThis.fetch,
+} = {}) {
   const root = normaliseBaseUrl(baseUrl);
   if (typeof fetchImpl !== 'function') throw new Error('A fetch implementation is required.');
 
   const tripUrl = (tripId) => `${root}/${encodeURIComponent(tripId)}`;
 
   return {
+    ...(photoBaseUrl
+      ? {
+          async savePhoto({ tripId, photoId, bytes, type }) {
+            const response = await fetchImpl(
+              `${normaliseBaseUrl(photoBaseUrl)}/${encodeURIComponent(tripId)}/${photoId}`,
+              {
+                method: 'PUT',
+                credentials: 'same-origin',
+                headers: { 'content-type': type },
+                body: bytes,
+              },
+            );
+            if (!response.ok) throw buildError(response, await readJsonResponse(response));
+          },
+          async loadPhoto({ tripId, photoId }) {
+            const response = await fetchImpl(
+              `${normaliseBaseUrl(photoBaseUrl)}/${encodeURIComponent(tripId)}/${photoId}`,
+              { method: 'GET', credentials: 'same-origin' },
+            );
+            if (!response.ok) throw buildError(response, await readJsonResponse(response));
+            return response.arrayBuffer();
+          },
+        }
+      : {}),
     async loadTrip({ tripId }) {
       const response = await fetchImpl(tripUrl(tripId), {
         method: 'GET',
@@ -70,6 +98,12 @@ export function connectConfiguredHttpCloudStorage({
 } = {}) {
   const config = target?.[configKey];
   if (!config?.baseUrl) return false;
-  setCloudStorageAdapter(createHttpCloudStorageAdapter({ baseUrl: config.baseUrl, fetchImpl }));
+  setCloudStorageAdapter(
+    createHttpCloudStorageAdapter({
+      baseUrl: config.baseUrl,
+      photoBaseUrl: config.photoBaseUrl,
+      fetchImpl,
+    }),
+  );
   return true;
 }

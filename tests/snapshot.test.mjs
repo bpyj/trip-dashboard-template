@@ -119,7 +119,7 @@ test('snapshot validation rejects unsafe or incompatible replacements before wri
   assert.equal(storage.getItem(`trip:${config.id}:info:v1`), before);
 
   assert.throws(
-    () => validateTripSnapshot({ ...snapshot, version: TRIP_SNAPSHOT_VERSION + 1 }),
+    () => validateTripSnapshot({ ...snapshot, version: 999 }),
     /Unsupported trip snapshot version/,
   );
   assert.throws(
