@@ -4,6 +4,9 @@ import { initTripEditor } from './trip.js';
 import { buildDayNotesPayload, exportHtmlArchive, revokeCurrentExportUrl } from './archive.js';
 import { addNewDay, getDayIndex } from './days.js';
 import { initPhotoAlbum } from './photos.js';
+import { initCloudSyncState } from './cloud-state.js';
+import { initCloudSyncControls } from './cloud-sync.js';
+import { connectConfiguredHttpCloudStorage } from './http-cloud-adapter.js';
 import {
   addDayBtn,
   clearExportLinkBtn,
@@ -34,6 +37,9 @@ window.addEventListener('beforeunload', () => {
 });
 
 (async function init() {
+  connectConfiguredHttpCloudStorage();
+  initCloudSyncState();
+  initCloudSyncControls();
   initPhotoAlbum();
   renderTripInfo();
   initOverviewPanels();

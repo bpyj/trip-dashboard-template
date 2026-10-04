@@ -7,6 +7,7 @@ export const STORE_NAME = 'photos';
 export const COVERS_PREFIX = `trip:${config.id}:cover:v1:`;
 export const NOTES_PREFIX = `trip:${config.id}:notes:v1:`;
 
+import { markLocalChangesPending } from './cloud-state.js';
 import { validateDays, validateTripInfo, validateTravel, mergeTravelSections } from './model.js';
 import config from '../trip.config.js';
 import { cloneTripDays, formatBytes } from './utils.js';
@@ -27,6 +28,7 @@ export function loadTravelInfo() {
 
 export function saveTravelInfo(travel) {
   localStorage.setItem(TRAVEL_STORAGE_KEY, JSON.stringify(validateTravel(travel)));
+  markLocalChangesPending();
 }
 
 export function loadTripInfo() {
@@ -49,6 +51,7 @@ export function loadTripInfo() {
 
 export function saveTripInfo(info) {
   localStorage.setItem(TRIP_INFO_STORAGE_KEY, JSON.stringify(validateTripInfo(info)));
+  markLocalChangesPending();
 }
 
 export function loadEditableTripDays() {
@@ -67,6 +70,7 @@ export function loadEditableTripDays() {
 
 export function saveEditableTripDays(days) {
   localStorage.setItem(TRIP_DAYS_STORAGE_KEY, JSON.stringify(days));
+  markLocalChangesPending();
 }
 
 export function normalizePhotoRecord(photo) {
@@ -106,6 +110,7 @@ export function saveDayCoverId(dayId, photoId) {
   const key = `${COVERS_PREFIX}${dayId}`;
   if (photoId == null) localStorage.removeItem(key);
   else localStorage.setItem(key, JSON.stringify(photoId));
+  markLocalChangesPending();
 }
 
 export function getNotesStorageKey(dayId) {
@@ -123,6 +128,7 @@ export function loadEditableDayNote(dayId) {
 export function saveEditableDayNote(dayId, text) {
   try {
     localStorage.setItem(getNotesStorageKey(dayId), text);
+    markLocalChangesPending();
   } catch (err) {
     console.error('Unable to save day notes:', err);
     throw err;
@@ -185,7 +191,10 @@ export async function addPhotoRecord(record) {
       insertedId = request.result;
     };
     request.onerror = () => reject(request.error);
-    tx.oncomplete = () => resolve(insertedId);
+    tx.oncomplete = () => {
+      markLocalChangesPending();
+      resolve(insertedId);
+    };
     tx.onabort = () => reject(tx.error || new Error('Photo save failed.'));
   });
 }
@@ -238,7 +247,10 @@ export async function updatePhotoCaption(id, caption) {
       }
       record.caption = caption;
       const putReq = store.put(record);
-      tx.oncomplete = () => resolve();
+      tx.oncomplete = () => {
+        markLocalChangesPending();
+        resolve();
+      };
       tx.onabort = () => reject(tx.error || new Error('Caption save failed.'));
       putReq.onerror = () => reject(putReq.error);
     };
@@ -253,7 +265,10 @@ export async function deletePhotoRecord(id) {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
     const request = store.delete(id);
-    tx.oncomplete = () => resolve();
+    tx.oncomplete = () => {
+      markLocalChangesPending();
+      resolve();
+    };
     tx.onabort = () => reject(tx.error || new Error('Photo deletion failed.'));
     request.onerror = () => reject(request.error);
   });

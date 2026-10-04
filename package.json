@@ -8,12 +8,15 @@
     "build": "node scripts/build.mjs",
     "test": "node --test tests/*.test.mjs",
     "format": "prettier --write src trip.config.js index.html style.css scripts tests README.md",
-    "check": "prettier --check src trip.config.js index.html style.css scripts tests README.md"
+    "check": "prettier --check src trip.config.js index.html style.css scripts tests README.md",
+    "build:site": "node scripts/build-site.mjs"
   },
   "devDependencies": {
     "esbuild": "0.25.12",
     "fake-indexeddb": "6.2.4",
     "jsdom": "26.1.0",
-    "prettier": "3.6.2"
+    "prettier": "3.6.2",
+    "drizzle-kit": "^0.31.10",
+    "drizzle-orm": "^0.45.2"
   }
 }

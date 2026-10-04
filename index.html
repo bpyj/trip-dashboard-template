@@ -140,6 +140,55 @@
 
       <section class="panel backup-panel" aria-labelledby="backupHeading" data-editable-only>
         <h2 id="backupHeading">Save a Trip Record</h2>
+        <div class="editor-card" id="cloudSyncPanel" aria-labelledby="cloudSyncHeading">
+          <h3 id="cloudSyncHeading">Cloud Sync</h3>
+          <p class="backup-note" id="cloudSyncStatus" role="status">
+            Cloud sync is not connected yet. These controls will be enabled after cloud storage is
+            added.
+          </p>
+          <div class="actions">
+            <button
+              class="btn secondary"
+              id="pullCloudBtn"
+              type="button"
+              aria-describedby="cloudSyncStatus"
+              disabled
+            >
+              ↓ Pull from Cloud
+            </button>
+            <button
+              class="btn"
+              id="pushCloudBtn"
+              type="button"
+              aria-describedby="cloudSyncStatus"
+              disabled
+            >
+              ↑ Push to Cloud
+            </button>
+          </div>
+          <div
+            class="box strict-box hidden"
+            id="cloudPullWarning"
+            role="alertdialog"
+            aria-labelledby="cloudPullWarningHeading"
+            aria-describedby="cloudPullWarningText"
+          >
+            <h4 id="cloudPullWarningHeading">Replace local changes?</h4>
+            <p id="cloudPullWarningText">
+              This device contains local changes that have not been pushed. Pulling from Cloud will
+              replace them.
+            </p>
+            <div class="actions">
+              <button class="btn secondary" id="cancelCloudPullBtn" type="button">Cancel</button>
+              <button class="btn" id="confirmCloudPullBtn" type="button">Replace &amp; Pull</button>
+            </div>
+          </div>
+          <p class="backup-note" aria-label="Cloud sync details">
+            <strong>Cloud revision:</strong> <span id="cloudRevision">—</span> ·
+            <strong>Last pushed:</strong> <span id="cloudLastPushed">Never</span> ·
+            <strong>Last pulled:</strong> <span id="cloudLastPulled">Never</span>
+          </p>
+        </div>
         <div class="actions">
           <button class="btn" id="exportHtmlBtn" type="button">Export HTML Archive</button
           ><button class="btn secondary" id="addDayBtn" type="button">Add Day</button>

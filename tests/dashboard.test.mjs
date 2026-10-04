@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { build } from 'esbuild';
-import { JSDOM, VirtualConsole } from 'jsdom';
+import { JSDOM, VirtualConsole, ResourceLoader } from 'jsdom';
 import { IDBFactory } from 'fake-indexeddb';
 import config from '../trip.config.js';
 import { validateDays, validateTripConfig, validateTripInfo } from '../src/model.js';
@@ -1120,4 +1120,139 @@ test('photo size labels are concise, accurate and shared with archives', async (
     app.formatPhotoMetadata(photo),
   );
   assert.equal(live.errors.length, 0);
+});
+
+test('fresh multi-photo archives navigate offline and retain a script-blocked fallback', async (t) => {
+  const live = openDashboard(new IDBFactory());
+  t.after(() => live.window.close());
+  await tick();
+  const app = live.window.TripTest;
+  const dayId = config.days[0].date;
+  const dataUrls = [
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j7WQAAAAASUVORK5CYII=',
+    'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+  ];
+  const ids = [];
+  for (let index = 0; index < 2; index++)
+    ids.push(
+      await app.addPhotoRecord({
+        dayId,
+        dataUrl: dataUrls[index],
+        type: index ? 'image/gif' : 'image/png',
+        name: `sample-${index}`,
+        caption: `OFFLINE CAPTION ${index}`,
+        createdAt: `2026-10-04T0${index}:00:00Z`,
+      }),
+    );
+  app.saveDayCoverId(dayId, ids[0]);
+  await app.refreshDayPhotos(dayId);
+  await app.openDayAlbum(dayId);
+  const html = app.buildArchiveHtml(await app.buildArchivePayload(), css);
+  const requests = [];
+  class OfflineResources extends ResourceLoader {
+    fetch(url) {
+      requests.push(url);
+      throw new Error('Network access is disabled.');
+    }
+  }
+  for (const scripted of [true, false]) {
+    const errors = [];
+    const virtualConsole = new VirtualConsole();
+    virtualConsole.on('jsdomError', (error) => errors.push(error));
+    const archive = new JSDOM(html, {
+      url: 'https://offline-archive.example/',
+      ...(scripted ? { runScripts: 'dangerously' } : {}),
+      resources: new OfflineResources(),
+      virtualConsole,
+      beforeParse(window) {
+        window.scrollTo = () => {};
+        window.HTMLElement.prototype.scrollIntoView = function () {};
+        window.fetch = () => {
+          throw new Error('Network access is disabled.');
+        };
+      },
+    });
+    t.after(() => archive.window.close());
+    const { document } = archive.window;
+    assert.equal(document.getElementById('appStyles').textContent, css);
+    assert.equal(
+      document.querySelectorAll(
+        '[data-editable-only], #cloudSyncPanel, input[type=file], script[src], link[rel=stylesheet]',
+      ).length,
+      0,
+    );
+    assert.equal(document.querySelector('.wrap').hasAttribute('inert'), false);
+    assert.equal(document.body.style.position, '');
+    assert.equal(document.querySelector('.day-cover img').getAttribute('src'), dataUrls[0]);
+    assert.ok(
+      [...document.querySelectorAll('img[src]')].every((image) =>
+        /^data:image\//.test(image.getAttribute('src')),
+      ),
+    );
+    if (scripted) {
+      const card = document.getElementById(`day-${dayId}`);
+      const header = card.querySelector('.day-header');
+      header.click();
+      assert.equal(header.getAttribute('aria-expanded'), 'true');
+      header.click();
+      assert.equal(header.getAttribute('aria-expanded'), 'false');
+      const trigger = card.querySelector('.day-album-btn');
+      trigger.click();
+      const modal = document.querySelector('.photo-modal');
+      const image = modal.querySelector('.photo-modal-image');
+      const counter = modal.querySelector('.photo-modal-counter');
+      assert.equal(modal.classList.contains('open'), true);
+      assert.equal(counter.textContent, '1 / 2');
+      const first = image.getAttribute('src');
+      modal.querySelector('[data-action=next]').click();
+      assert.equal(counter.textContent, '2 / 2');
+      assert.notEqual(image.getAttribute('src'), first);
+      modal.querySelector('[data-action=previous]').click();
+      assert.equal(image.getAttribute('src'), first);
+      const touch = (type, x, y) => {
+        const event = new archive.window.Event(type);
+        Object.defineProperty(event, type === 'touchend' ? 'changedTouches' : 'touches', {
+          value: [{ clientX: x, clientY: y }],
+        });
+        image.dispatchEvent(event);
+      };
+      touch('touchstart', 200, 100);
+      touch('touchend', 100, 105);
+      assert.equal(counter.textContent, '2 / 2');
+      touch('touchstart', 100, 100);
+      touch('touchend', 200, 105);
+      assert.equal(counter.textContent, '1 / 2');
+      document.dispatchEvent(
+        new archive.window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
+      );
+      assert.equal(counter.textContent, '2 / 2');
+      assert.match(
+        modal.querySelector('.photo-modal-caption-input').textContent,
+        /OFFLINE CAPTION/,
+      );
+      modal.querySelector('[data-action=close]').click();
+      assert.equal(modal.classList.contains('open'), false);
+      assert.equal(document.body.style.position, '');
+      assert.equal(document.activeElement, trigger);
+      assert.equal(!!document.querySelector('.wrap').inert, false);
+    } else {
+      const details = document.querySelector('.archive-day-details');
+      details.open = true;
+      assert.equal(details.open, true);
+      const album = document.querySelector('.archive-album');
+      album.open = true;
+      const radios = album.querySelectorAll('.archive-photo-select');
+      assert.equal(radios.length, 2);
+      const firstNav = album.querySelector('.archive-photo-nav');
+      firstNav.querySelector('label:last-child').click();
+      assert.equal(radios[1].checked, true);
+      assert.equal(album.querySelectorAll('figure').length, 2);
+      assert.match(album.textContent, /OFFLINE CAPTION 0/);
+      assert.match(album.textContent, /OFFLINE CAPTION 1/);
+      album.open = false;
+      assert.equal(album.open, false);
+    }
+    assert.equal(errors.length, 0, errors.map((error) => error.message).join('\n'));
+  }
+  assert.deepEqual(requests, []);
 });
