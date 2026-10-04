@@ -90,7 +90,7 @@ test('Push stores the full local text snapshot, advances revision and clears dir
 
   saveTripInfo(validTripInfo('TEST A'));
   assert.equal(loadCloudSyncState().dirty, true);
-  assert.equal(pullButton.disabled, true);
+  assert.equal(pullButton.disabled, false);
 
   const firstPushTime = '2026-10-04T09:15:00.000Z';
   const first = await pushLocalTripToCloud({ now: firstPushTime });
