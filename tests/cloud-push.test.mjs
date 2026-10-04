@@ -3,15 +3,9 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { JSDOM } from 'jsdom';
 import config from '../trip.config.js';
-import {
-  clearCloudStorageAdapter,
-  setCloudStorageAdapter,
-} from '../src/cloud-storage.js';
+import { clearCloudStorageAdapter, setCloudStorageAdapter } from '../src/cloud-storage.js';
 import { initCloudSyncState, loadCloudSyncState } from '../src/cloud-state.js';
-import {
-  initCloudSyncControls,
-  pushLocalTripToCloud,
-} from '../src/cloud-sync.js';
+import { initCloudSyncControls, pushLocalTripToCloud } from '../src/cloud-sync.js';
 import { loadTripInfo, saveTripInfo } from '../src/storage.js';
 
 const template = await readFile('index.html', 'utf8');
@@ -81,47 +75,50 @@ function createMemoryCloudAdapter({ failSave = null, delay = 0 } = {}) {
   };
 }
 
-test('Push stores the full local text snapshot, advances revision and clears dirty state', async (t) => {
-  const dom = installBrowser(t);
-  localStorage.clear();
-  initCloudSyncState();
-  const adapter = createMemoryCloudAdapter();
-  setCloudStorageAdapter(adapter);
-  initCloudSyncControls();
+test(
+  'Push stores the full local text snapshot, advances revision and clears dirty state',
+  async (t) => {
+    const dom = installBrowser(t);
+    localStorage.clear();
+    initCloudSyncState();
+    const adapter = createMemoryCloudAdapter();
+    setCloudStorageAdapter(adapter);
+    initCloudSyncControls();
 
-  const pushButton = dom.window.document.getElementById('pushCloudBtn');
-  const pullButton = dom.window.document.getElementById('pullCloudBtn');
-  assert.equal(pushButton.disabled, false);
-  assert.equal(pullButton.disabled, true);
+    const pushButton = dom.window.document.getElementById('pushCloudBtn');
+    const pullButton = dom.window.document.getElementById('pullCloudBtn');
+    assert.equal(pushButton.disabled, false);
+    assert.equal(pullButton.disabled, true);
 
-  saveTripInfo(validTripInfo('TEST A'));
-  assert.equal(loadCloudSyncState().dirty, true);
+    saveTripInfo(validTripInfo('TEST A'));
+    assert.equal(loadCloudSyncState().dirty, true);
 
-  const firstPushTime = '2026-10-04T09:15:00.000Z';
-  const first = await pushLocalTripToCloud({ now: firstPushTime });
-  assert.equal(first.revision, 1);
-  assert.equal(adapter.stored.revision, 1);
-  assert.equal(adapter.stored.tripInfo.title, 'TEST A');
-  assert.equal(adapter.saves[0].expectedRevision, null);
-  assert.equal(adapter.saves[0].snapshot.revision, 1);
-  assert.deepEqual(adapter.saves[0].tripId, config.id);
-  assert.deepEqual(loadCloudSyncState(), {
-    dirty: false,
-    revision: 1,
-    lastPushed: firstPushTime,
-    lastPulled: null,
-  });
+    const firstPushTime = '2026-10-04T09:15:00.000Z';
+    const first = await pushLocalTripToCloud({ now: firstPushTime });
+    assert.equal(first.revision, 1);
+    assert.equal(adapter.stored.revision, 1);
+    assert.equal(adapter.stored.tripInfo.title, 'TEST A');
+    assert.equal(adapter.saves[0].expectedRevision, null);
+    assert.equal(adapter.saves[0].snapshot.revision, 1);
+    assert.deepEqual(adapter.saves[0].tripId, config.id);
+    assert.deepEqual(loadCloudSyncState(), {
+      dirty: false,
+      revision: 1,
+      lastPushed: firstPushTime,
+      lastPulled: null,
+    });
 
-  saveTripInfo(validTripInfo('TEST B'));
-  const secondPushTime = '2026-10-04T09:16:00.000Z';
-  const second = await pushLocalTripToCloud({ now: secondPushTime });
-  assert.equal(second.revision, 2);
-  assert.equal(adapter.stored.tripInfo.title, 'TEST B');
-  assert.equal(adapter.saves[1].expectedRevision, 1);
-  assert.equal(adapter.saves[1].snapshot.revision, 2);
-  assert.equal(loadCloudSyncState().dirty, false);
-  assert.equal(loadCloudSyncState().revision, 2);
-});
+    saveTripInfo(validTripInfo('TEST B'));
+    const secondPushTime = '2026-10-04T09:16:00.000Z';
+    const second = await pushLocalTripToCloud({ now: secondPushTime });
+    assert.equal(second.revision, 2);
+    assert.equal(adapter.stored.tripInfo.title, 'TEST B');
+    assert.equal(adapter.saves[1].expectedRevision, 1);
+    assert.equal(adapter.saves[1].snapshot.revision, 2);
+    assert.equal(loadCloudSyncState().dirty, false);
+    assert.equal(loadCloudSyncState().revision, 2);
+  },
+);
 
 test('Push button shows progress, prevents repeat taps and finishes up to date', async (t) => {
   const dom = installBrowser(t);
