@@ -16,7 +16,8 @@ function createFakeD1() {
           return this;
         },
         async first() {
-          if (!sql.startsWith('SELECT snapshot_json')) throw new Error(`Unexpected first(): ${sql}`);
+          if (!sql.startsWith('SELECT snapshot_json'))
+            throw new Error(`Unexpected first(): ${sql}`);
           const row = rows.get(values[0]);
           return row ? { snapshot_json: row.snapshot_json } : null;
         },
