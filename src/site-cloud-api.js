@@ -23,14 +23,12 @@ function validateWritePayload(payload, tripId) {
   const expectedRevision = payload?.expectedRevision ?? null;
 
   if (!snapshot || typeof snapshot !== 'object') throw new Error('Snapshot is required.');
-  if (snapshot.tripId !== tripId) throw new Error('Snapshot trip does not match this cloud record.');
+  if (snapshot.tripId !== tripId)
+    throw new Error('Snapshot trip does not match this cloud record.');
   if (!Number.isInteger(snapshot.revision) || snapshot.revision < 1) {
     throw new Error('Snapshot revision must be a positive integer.');
   }
-  if (
-    expectedRevision !== null &&
-    (!Number.isInteger(expectedRevision) || expectedRevision < 0)
-  ) {
+  if (expectedRevision !== null && (!Number.isInteger(expectedRevision) || expectedRevision < 0)) {
     throw new Error('Expected revision must be a non-negative integer or null.');
   }
   const nextRevision = (expectedRevision ?? 0) + 1;
@@ -45,7 +43,12 @@ export async function ensureTripSyncSchema(db) {
   await db.prepare(CREATE_TABLE_SQL).run();
 }
 
-export async function handleTripSyncRequest({ request, tripId, db, now = new Date().toISOString() }) {
+export async function handleTripSyncRequest({
+  request,
+  tripId,
+  db,
+  now = new Date().toISOString(),
+}) {
   if (!(request instanceof Request)) throw new Error('A Request is required.');
   if (typeof tripId !== 'string' || !tripId) return json({ error: 'Trip ID is required.' }, 400);
 
