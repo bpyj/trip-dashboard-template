@@ -39,7 +39,8 @@ function validateDayNotes(dayNotes) {
   return Object.fromEntries(
     Object.entries(dayNotes)
       .map(([date, text]) => {
-        if (typeof text !== 'string') throw new Error('Snapshot day notes must contain text values.');
+        if (typeof text !== 'string')
+          throw new Error('Snapshot day notes must contain text values.');
         return [validateSnapshotDate(date), text];
       })
       .sort(([a], [b]) => a.localeCompare(b)),
@@ -89,7 +90,10 @@ export function validateTripSnapshot(snapshot) {
   };
 }
 
-export function createLocalTripSnapshot({ revision = 0, createdAt = new Date().toISOString() } = {}) {
+export function createLocalTripSnapshot({
+  revision = 0,
+  createdAt = new Date().toISOString(),
+} = {}) {
   return validateTripSnapshot({
     format: TRIP_SNAPSHOT_FORMAT,
     version: TRIP_SNAPSHOT_VERSION,
@@ -108,7 +112,8 @@ export function serializeTripSnapshot(snapshot) {
 }
 
 export function parseTripSnapshot(serialized) {
-  if (typeof serialized !== 'string') throw new Error('Trip snapshot must be serialized as JSON text.');
+  if (typeof serialized !== 'string')
+    throw new Error('Trip snapshot must be serialized as JSON text.');
   try {
     return validateTripSnapshot(JSON.parse(serialized));
   } catch (error) {
@@ -131,9 +136,7 @@ export function restoreLocalTripSnapshot(snapshot) {
     ...existingNoteKeys,
     ...newNoteEntries.map(([key]) => key),
   ]);
-  const previous = new Map(
-    [...affectedKeys].map((key) => [key, localStorage.getItem(key)]),
-  );
+  const previous = new Map([...affectedKeys].map((key) => [key, localStorage.getItem(key)]));
 
   try {
     for (const key of existingNoteKeys) localStorage.removeItem(key);
