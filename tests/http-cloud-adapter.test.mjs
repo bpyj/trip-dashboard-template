@@ -56,10 +56,13 @@ test('HTTP adapter treats an empty cloud record as null and surfaces cloud confl
   const conflict = createHttpCloudStorageAdapter({
     baseUrl: '/api/trip-sync',
     fetchImpl: async () =>
-      new Response(JSON.stringify({ error: 'Cloud revision changed. Pull before pushing again.' }), {
-        status: 409,
-        headers: { 'content-type': 'application/json' },
-      }),
+      new Response(
+        JSON.stringify({ error: 'Cloud revision changed. Pull before pushing again.' }),
+        {
+          status: 409,
+          headers: { 'content-type': 'application/json' },
+        },
+      ),
   });
   await assert.rejects(
     () => conflict.saveTrip({ tripId: 'test-trip', snapshot: {}, expectedRevision: 2 }),
