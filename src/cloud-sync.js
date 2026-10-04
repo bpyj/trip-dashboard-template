@@ -26,7 +26,7 @@ function setStatus(message) {
   if (status) status.textContent = message;
 }
 
-export function refreshCloudSyncControls() {
+export function refreshCloudSyncControls({ preserveStatus = false } = {}) {
   const { pull, push } = getControls();
   const connected = hasCloudStorageAdapter();
   const current = loadCloudSyncState();
@@ -37,11 +37,11 @@ export function refreshCloudSyncControls() {
     return { connected, state: current };
   }
 
-  const state = renderCloudSyncState();
+  const state = preserveStatus ? current : renderCloudSyncState();
   if (pull) pull.disabled = !connected || state.dirty;
   if (push) push.disabled = !connected;
 
-  if (connected && !state.dirty && state.revision == null) {
+  if (!preserveStatus && connected && !state.dirty && state.revision == null) {
     setStatus('Cloud storage connected. No local changes waiting to push.');
   }
   return { connected, state };
@@ -103,17 +103,19 @@ export function initCloudSyncControls({ reload = () => window.location.reload() 
       if (controls.pull) controls.pull.disabled = true;
       setStatus('Pushing local changes to cloud…');
 
+      let failureMessage = null;
       try {
         await pushLocalTripToCloud();
       } catch (error) {
         console.error('Unable to push trip to cloud:', error);
-        setStatus(
-          `Push failed. Local changes remain on this device. ${error?.message || 'Please try again.'}`,
-        );
+        failureMessage = `Push failed. Local changes remain on this device. ${
+          error?.message || 'Please try again.'
+        }`;
       } finally {
         syncBusy = false;
-        refreshCloudSyncControls();
+        refreshCloudSyncControls({ preserveStatus: failureMessage != null });
       }
+      if (failureMessage) setStatus(failureMessage);
     });
   }
 
@@ -127,24 +129,26 @@ export function initCloudSyncControls({ reload = () => window.location.reload() 
       setStatus('Pulling cloud trip to this device…');
 
       let shouldReload = false;
+      let finalMessage = null;
       try {
         const restored = await pullCloudTripToLocal();
         if (restored == null) {
-          setStatus('No cloud trip has been pushed yet. Local data was not changed.');
+          finalMessage = 'No cloud trip has been pushed yet. Local data was not changed.';
         } else {
           setStatus('Cloud trip restored. Reloading dashboard…');
           shouldReload = true;
         }
       } catch (error) {
         console.error('Unable to pull trip from cloud:', error);
-        setStatus(
-          `Pull failed. Local trip remains on this device. ${error?.message || 'Please try again.'}`,
-        );
+        finalMessage = `Pull failed. Local trip remains on this device. ${
+          error?.message || 'Please try again.'
+        }`;
       } finally {
         syncBusy = false;
-        if (!shouldReload) refreshCloudSyncControls();
+        if (!shouldReload) refreshCloudSyncControls({ preserveStatus: finalMessage != null });
       }
 
+      if (finalMessage) setStatus(finalMessage);
       if (shouldReload) reload();
     });
   }
