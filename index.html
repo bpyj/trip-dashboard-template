@@ -166,6 +166,25 @@
               ↑ Push to Cloud
             </button>
           </div>
+          <div
+            class="cloud-pull-warning hidden"
+            id="cloudPullWarning"
+            role="alertdialog"
+            aria-labelledby="cloudPullWarningHeading"
+            aria-describedby="cloudPullWarningText"
+          >
+            <h4 id="cloudPullWarningHeading">Replace local changes?</h4>
+            <p id="cloudPullWarningText">
+              This device contains local changes that have not been pushed. Pulling from Cloud will
+              replace them.
+            </p>
+            <div class="actions">
+              <button class="btn secondary" id="cancelCloudPullBtn" type="button">Cancel</button>
+              <button class="btn danger" id="confirmCloudPullBtn" type="button">
+                Replace &amp; Pull
+              </button>
+            </div>
+          </div>
           <p class="backup-note" aria-label="Cloud sync details">
             <strong>Cloud revision:</strong> <span id="cloudRevision">—</span> ·
             <strong>Last pushed:</strong> <span id="cloudLastPushed">Never</span> ·
@@ -258,42 +277,44 @@
             </button>
             <input
               class="photo-input"
-              id="photoModalUploadInput"
-              data-editable-only
+              id="photoInput"
               type="file"
               accept="image/*"
               multiple
-              aria-label="Upload album photos"
+              data-editable-only
             />
             <button
-              class="photo-modal-btn danger"
-              type="button"
-              id="photoModalDeleteBtn"
-              data-editable-only
-            >
-              Delete Photo
-            </button>
-            <button
-              class="photo-modal-btn primary"
-              type="button"
+              class="photo-modal-btn"
               id="photoModalSaveBtn"
               data-editable-only
+              type="button"
             >
               Save Caption
             </button>
             <button
-              class="photo-modal-btn ghost"
+              class="photo-modal-btn danger"
+              id="photoModalDeleteBtn"
+              data-editable-only
               type="button"
-              id="photoModalClose"
-              data-action="close"
             >
+              Delete Photo
+            </button>
+            <button class="photo-modal-btn ghost" id="photoModalCloseBtn" type="button">
               Close Album
             </button>
           </div>
-          <div id="photoStatus" data-editable-only role="status"></div>
         </div>
       </div>
     </div>
+    <button
+      class="floating-collapse hidden"
+      id="floatingCollapseBtn"
+      type="button"
+      aria-label="Collapse current section"
+    >
+      ↑
+    </button>
+
     <script id="appScript" type="module" src="src/app.js"></script>
   </body>
 </html>
